@@ -19,9 +19,10 @@ package controller
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -89,9 +90,14 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
 	cancel()
-	Eventually(func() error {
-		return testEnv.Stop()
-	}, time.Minute, time.Second).Should(Succeed())
+	err := testEnv.Stop()
+	if err != nil && strings.Contains(err.Error(), "not supported by windows") {
+		Expect(stopWindowsEnvTestProcesses()).To(Succeed())
+		return
+	}
+	if err != nil {
+		Expect(err).NotTo(HaveOccurred())
+	}
 })
 
 // getFirstFoundEnvTestBinaryDir locates the first binary in the specified path.
@@ -104,15 +110,46 @@ var _ = AfterSuite(func() {
 // properly set up, run 'make setup-envtest' beforehand.
 func getFirstFoundEnvTestBinaryDir() string {
 	basePath := filepath.Join("..", "..", "bin", "k8s")
-	entries, err := os.ReadDir(basePath)
+	var found string
+	err := filepath.WalkDir(basePath, func(path string, entry os.DirEntry, err error) error {
+		if err != nil || !entry.IsDir() || found != "" {
+			return nil
+		}
+		etcdName := "etcd"
+		if os.PathSeparator == '\\' {
+			etcdName = "etcd.exe"
+		}
+		etcdPath := filepath.Join(path, etcdName)
+		if _, statErr := os.Stat(etcdPath); statErr == nil {
+			found = path
+			return filepath.SkipDir
+		}
+		return nil
+	})
 	if err != nil {
-		logf.Log.Error(err, "Failed to read directory", "path", basePath)
+		logf.Log.Error(err, "Failed to scan envtest binary directory", "path", basePath)
 		return ""
 	}
-	for _, entry := range entries {
-		if entry.IsDir() {
-			return filepath.Join(basePath, entry.Name())
+	if found == "" {
+		if _, err := os.Stat(basePath); err != nil {
+			logf.Log.Error(err, "Failed to read directory", "path", basePath)
 		}
 	}
-	return ""
+	return found
+}
+
+func stopWindowsEnvTestProcesses() error {
+	if os.PathSeparator != '\\' {
+		return nil
+	}
+	basePath, err := filepath.Abs(filepath.Join("..", "..", "bin", "k8s"))
+	if err != nil {
+		return err
+	}
+	script := `$base = "` + strings.ReplaceAll(basePath, "`", "``") + `"; ` +
+		`Get-CimInstance Win32_Process | Where-Object { ` +
+		`($_.Name -in @("etcd.exe","kube-apiserver.exe")) -and ` +
+		`($_.ExecutablePath -like "$base*") ` +
+		`} | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }`
+	return exec.Command("powershell", "-NoProfile", "-Command", script).Run()
 }

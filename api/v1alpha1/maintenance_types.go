@@ -21,76 +21,168 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// MaintenanceSpec defines the desired state of Maintenance
+// MaintenanceSpec defines the desired state of Maintenance.
 type MaintenanceSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	// The following markers will use OpenAPI v3 schema to validate the value
-	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
 
-	// foo is an example field of Maintenance. Edit maintenance_types.go to remove/update
+	// Name of the target Ingress.
+	// +kubebuilder:validation:MinLength=1
+	TargetIngress string `json:"targetIngress"`
+
+	// Enable or disable maintenance mode.
 	// +optional
-	Foo *string `json:"foo,omitempty"`
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Maintenance response configuration.
+	// +optional
+	Response *MaintenanceResponse `json:"response,omitempty"`
+
+	// Optional ALB group order for the maintenance ingress.
+	// Lower values take precedence over higher values.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:default=0
+	// +optional
+	Priority int `json:"priority,omitempty"`
+
+	// Optional maintenance schedule.
+	// +optional
+	Schedule *MaintenanceSchedule `json:"schedule,omitempty"`
+}
+
+// MaintenanceResponse defines how the maintenance response is served.
+type MaintenanceResponse struct {
+
+	// HTML returned directly from the load balancer.
+	// Used when Backend=fixed-response.
+	//
+	// AWS ALB fixed-response has size limitations.
+	//
+	// +kubebuilder:validation:MaxLength=1024
+	// +optional
+	HTML string `json:"html,omitempty"`
+
+	// Automatically deploy an NGINX backend
+	// for larger maintenance pages.
+	//
+	// Used when Backend=nginx.
+	//
+	// +optional
+	UseNginx bool `json:"useNginx,omitempty"`
+
+	// Backend implementation used to serve maintenance response.
+	//
+	// fixed-response - Return HTML from ingress/load balancer.
+	//
+	// +kubebuilder:validation:Enum=fixed-response
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:default=fixed-response
+	// +optional
+	Backend string `json:"backend,omitempty"`
+
+	// Existing Kubernetes Service name.
+	// Used when Backend=service.
+	//
+	// +optional
+	ServiceName string `json:"serviceName,omitempty"`
+}
+
+// MaintenanceSchedule defines the maintenance window.
+type MaintenanceSchedule struct {
+
+	// Maintenance start time (RFC3339).
+	// +optional
+	Start *metav1.Time `json:"start,omitempty"`
+
+	// Maintenance end time (RFC3339).
+	// +optional
+	End *metav1.Time `json:"end,omitempty"`
 }
 
 // MaintenanceStatus defines the observed state of Maintenance.
 type MaintenanceStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 
-	// For Kubernetes API conventions, see:
-	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
+	// Current reconciliation phase.
+	//
+	// Pending - Resource detected but not processed yet.
+	// Enabled  - Maintenance rules applied successfully.
+	// Disabled - Original ingress restored.
+	// Failed   - Reconciliation failed.
+	//
+	// +kubebuilder:validation:Enum=Pending;Enabled;Disabled;Failed
+	// +optional
+	Phase string `json:"phase,omitempty"`
 
-	// conditions represent the current state of the Maintenance resource.
-	// Each condition has a unique type and reflects the status of a specific aspect of the resource.
+	// Whether a backup of the target Ingress exists.
 	//
-	// Standard condition types include:
-	// - "Available": the resource is fully functional
-	// - "Progressing": the resource is being created or updated
-	// - "Degraded": the resource failed to reach or maintain its desired state
+	// +optional
+	BackupCreated bool `json:"backupCreated,omitempty"`
+
+	// Name of the backup resource containing the original Ingress.
 	//
-	// The status of each condition is one of True, False, or Unknown.
-	// +listType=map
-	// +listMapKey=type
+	// +optional
+	BackupResourceName string `json:"backupResourceName,omitempty"`
+
+	// ResourceVersion of the target Ingress when maintenance was enabled.
+	//
+	// Used to detect changes while maintenance mode is active.
+	//
+	// +optional
+	TargetIngressResourceVersion string `json:"targetIngressResourceVersion,omitempty"`
+
+	// Last time the controller changed the phase.
+	//
+	// +optional
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
+
+	// Human-readable status message.
+	//
+	// +optional
+	Message string `json:"message,omitempty"`
+
+	// Current resource conditions.
+	//
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Ingress",type=string,JSONPath=`.spec.targetIngress`
+// +kubebuilder:printcolumn:name="Enabled",type=boolean,JSONPath=`.spec.enabled`
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
-// Maintenance is the Schema for the maintenances API
+// Maintenance is the Schema for the maintenances API.
 type Maintenance struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// metadata is a standard object metadata
-	// +optional
-	metav1.ObjectMeta `json:"metadata,omitzero"`
+	// Standard object metadata.
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// spec defines the desired state of Maintenance
-	// +required
+	// Desired state.
 	Spec MaintenanceSpec `json:"spec"`
 
-	// status defines the observed state of Maintenance
+	// Observed state.
 	// +optional
-	Status MaintenanceStatus `json:"status,omitzero"`
+	Status MaintenanceStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// MaintenanceList contains a list of Maintenance
+// MaintenanceList contains a list of Maintenance.
 type MaintenanceList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitzero"`
-	Items           []Maintenance `json:"items"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+
+	Items []Maintenance `json:"items"`
 }
 
 func init() {
 	SchemeBuilder.Register(func(s *runtime.Scheme) error {
-		s.AddKnownTypes(SchemeGroupVersion, &Maintenance{}, &MaintenanceList{})
+		s.AddKnownTypes(
+			SchemeGroupVersion,
+			&Maintenance{},
+			&MaintenanceList{},
+		)
 		return nil
 	})
 }

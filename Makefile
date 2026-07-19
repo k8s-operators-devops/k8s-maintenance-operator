@@ -1,7 +1,11 @@
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
 # YEAR defines the year value used for substituting the YEAR placeholder in the boilerplate header.
+ifeq ($(OS),Windows_NT)
+YEAR ?= $(shell powershell -NoProfile -Command "(Get-Date).Year")
+else
 YEAR ?= $(shell date +%Y)
+endif
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -16,10 +20,14 @@ endif
 # tools. (i.e. podman)
 CONTAINER_TOOL ?= docker
 
-# Setting SHELL to bash allows bash commands to be executed by recipes.
-# Options are set to exit when a recipe line exits non-zero or a piped command fails.
-SHELL = /usr/bin/env bash -o pipefail
-.SHELLFLAGS = -ec
+# Use a shell that is available on the current platform so the recipes run without extra setup.
+ifeq ($(OS),Windows_NT)
+SHELL := cmd.exe
+.SHELLFLAGS := /c
+else
+SHELL := /usr/bin/env bash -o pipefail
+.SHELLFLAGS := -ec
+endif
 
 .PHONY: all
 all: build
@@ -45,11 +53,11 @@ help: ## Display this help.
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	"$(CONTROLLER_GEN)" rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./api/v1alpha1;./internal/controller" output:crd:artifacts:config=config/crd/bases
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	"$(CONTROLLER_GEN)" object:headerFile="hack\\boilerplate.go.txt",year=$(YEAR) paths="./..."
+	$(CONTROLLER_GEN) object:headerFile="hack\\boilerplate.go.txt",year=$(YEAR) paths="./api/v1alpha1"
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
@@ -148,7 +156,7 @@ docker-buildx: ## Build and push docker image for the manager for cross-platform
 build-installer: manifests generate kustomize ## Generate a consolidated YAML with CRDs and deployment.
 	mkdir -p dist
 	cd config/manager && "$(KUSTOMIZE)" edit set image controller=${IMG}
-	"$(KUSTOMIZE)" build config/default > dist/install.yaml
+	$(KUSTOMIZE) build config/default > dist/install.yaml
 
 ##@ Deployment
 
@@ -169,26 +177,42 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	cd config/manager && "$(KUSTOMIZE)" edit set image controller=${IMG}
-	"$(KUSTOMIZE)" build config/default | "$(KUBECTL)" apply -f -
+	$(KUSTOMIZE) build config/default | "$(KUBECTL)" apply -f -
 
 .PHONY: undeploy
 undeploy: kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	"$(KUSTOMIZE)" build config/default | "$(KUBECTL)" delete --ignore-not-found=$(ignore-not-found) -f -
+	$(KUSTOMIZE) build config/default | "$(KUBECTL)" delete --ignore-not-found=$(ignore-not-found) -f -
 
 ##@ Dependencies
 
 ## Location to install dependencies to
-LOCALBIN ?= $(shell pwd)/bin
+LOCALBIN ?= $(CURDIR)/bin
+ifeq ($(OS),Windows_NT)
+define mkdir-if-needed
+@if not exist "$(1)" mkdir "$(1)"
+endef
+else
+define mkdir-if-needed
+@mkdir -p "$(1)"
+endef
+endif
 $(LOCALBIN):
-	mkdir -p "$(LOCALBIN)"
+	$(call mkdir-if-needed,$(LOCALBIN))
 
 ## Tool Binaries
 KUBECTL ?= kubectl
 KIND ?= kind
-KUSTOMIZE ?= $(LOCALBIN)/kustomize
-CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
-ENVTEST ?= $(LOCALBIN)/setup-envtest
-GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
+ifeq ($(OS),Windows_NT)
+KUSTOMIZE ?= $(if $(wildcard $(LOCALBIN)/kustomize.exe),$(LOCALBIN)/kustomize.exe,go run sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION))
+CONTROLLER_GEN ?= $(if $(wildcard $(LOCALBIN)/controller-gen.exe),$(LOCALBIN)/controller-gen.exe,go run sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION))
+ENVTEST ?= $(if $(wildcard $(LOCALBIN)/setup-envtest.exe),$(LOCALBIN)/setup-envtest.exe,go run sigs.k8s.io/controller-runtime/tools/setup-envtest@$(ENVTEST_VERSION))
+GOLANGCI_LINT ?= $(if $(wildcard $(LOCALBIN)/golangci-lint.exe),$(LOCALBIN)/golangci-lint.exe,go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION))
+else
+KUSTOMIZE ?= $(if $(wildcard $(LOCALBIN)/kustomize),$(LOCALBIN)/kustomize,go run sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION))
+CONTROLLER_GEN ?= $(if $(wildcard $(LOCALBIN)/controller-gen),$(LOCALBIN)/controller-gen,go run sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION))
+ENVTEST ?= $(if $(wildcard $(LOCALBIN)/setup-envtest),$(LOCALBIN)/setup-envtest,go run sigs.k8s.io/controller-runtime/tools/setup-envtest@$(ENVTEST_VERSION))
+GOLANGCI_LINT ?= $(if $(wildcard $(LOCALBIN)/golangci-lint),$(LOCALBIN)/golangci-lint,go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION))
+endif
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.8.1
@@ -206,42 +230,39 @@ ENVTEST_K8S_VERSION ?= $(shell v='$(call gomodver,k8s.io/api)'; \
 
 GOLANGCI_LINT_VERSION ?= v2.12.2
 .PHONY: kustomize
-kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
-$(KUSTOMIZE): $(LOCALBIN)
-	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v5,$(KUSTOMIZE_VERSION))
+kustomize: ## Use kustomize through go run when no local binary is available.
+	@echo "Using kustomize via $(KUSTOMIZE)"
 
 .PHONY: controller-gen
-controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
-$(CONTROLLER_GEN): $(LOCALBIN)
-	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen,$(CONTROLLER_TOOLS_VERSION))
+controller-gen: ## Use controller-gen through go run when no local binary is available.
+	@echo "Using controller-gen via $(CONTROLLER_GEN)"
 
 .PHONY: setup-envtest
 setup-envtest: envtest ## Download the binaries required for ENVTEST in the local bin directory.
 	@echo "Setting up envtest binaries for Kubernetes version $(ENVTEST_K8S_VERSION)..."
-	@"$(ENVTEST)" use $(ENVTEST_K8S_VERSION) --bin-dir "$(LOCALBIN)" -p path || { \
+	@$(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir "$(LOCALBIN)" -p path || { \
 		echo "Error: Failed to set up envtest binaries for version $(ENVTEST_K8S_VERSION)."; \
 		exit 1; \
 	}
 
 .PHONY: envtest
-envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.
-$(ENVTEST): $(LOCALBIN)
-	$(call go-install-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest,$(ENVTEST_VERSION))
+envtest: ## Use setup-envtest through go run when no local binary is available.
+	@echo "Using setup-envtest via $(ENVTEST)"
 
 .PHONY: golangci-lint
-golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
-$(GOLANGCI_LINT): $(LOCALBIN)
-	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
-	@test -f .custom-gcl.yml && { \
-		echo "Building custom golangci-lint with plugins..." && \
-		$(GOLANGCI_LINT) custom --destination $(LOCALBIN) --name golangci-lint-custom && \
-		mv -f $(LOCALBIN)/golangci-lint-custom $(GOLANGCI_LINT); \
-	} || true
+golangci-lint: ## Use golangci-lint through go run when no local binary is available.
+	@echo "Using golangci-lint via $(GOLANGCI_LINT)"
+	@$(GOLANGCI_LINT) --version >/dev/null 2>&1 || true
 
-# go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
+# go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist.
 # $1 - target path with name of binary
 # $2 - package url which can be installed
 # $3 - specific version of package
+ifeq ($(OS),Windows_NT)
+define go-install-tool
+@setlocal EnableExtensions & set "pkg=$(2)@$(3)" & set "target=$(1)" & if exist "%target%" ( echo "Using %target%" ) else ( echo "Downloading %pkg%" & set "GOBIN=$(LOCALBIN)" & go install %pkg% & if exist "%target%" ( echo "Installed %target%" ) else ( echo "go install did not produce the expected binary" & exit /b 1 ) )
+endef
+else
 define go-install-tool
 @[ -f "$(1)-$(3)" ] && [ "$$(readlink -- "$(1)" 2>/dev/null)" = "$(1)-$(3)" ] || { \
 set -e; \
@@ -253,6 +274,7 @@ mv "$(LOCALBIN)/$$(basename "$(1)")" "$(1)-$(3)" ;\
 } ;\
 ln -sf "$$(realpath "$(1)-$(3)")" "$(1)"
 endef
+endif
 
 define gomodver
 $(shell go list -m -f '{{if .Replace}}{{.Replace.Version}}{{else}}{{.Version}}{{end}}' $(1) 2>/dev/null)
