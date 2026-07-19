@@ -108,15 +108,15 @@ cleanup-test-e2e: ## Tear down the Kind cluster used for e2e tests
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter
-	"$(GOLANGCI_LINT)" run
+	$(GOLANGCI_LINT) run
 
 .PHONY: lint-fix
 lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
-	"$(GOLANGCI_LINT)" run --fix
+	$(GOLANGCI_LINT) run --fix
 
 .PHONY: lint-config
 lint-config: golangci-lint ## Verify golangci-lint linter configuration
-	"$(GOLANGCI_LINT)" config verify
+	$(GOLANGCI_LINT) config verify
 
 ##@ Build
 
@@ -270,7 +270,6 @@ envtest: ## Use setup-envtest through go run when no local binary is available.
 .PHONY: golangci-lint
 golangci-lint: ## Use golangci-lint through go run when no local binary is available.
 	@echo "Using golangci-lint via $(GOLANGCI_LINT)"
-	@$(GOLANGCI_LINT) --version >/dev/null 2>&1 || true
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist.
 # $1 - target path with name of binary
