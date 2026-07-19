@@ -34,7 +34,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	k8smaintenancev1alpha1 "github.com/Sumanthk911/k8s-maintenance-operator/api/v1alpha1"
+	k8smaintenancev1alpha1 "github.com/k8s-operators-devops/k8s-maintenance-operator/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 

@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	k8smaintenancev1alpha1 "github.com/Sumanthk911/k8s-maintenance-operator/api/v1alpha1"
+	k8smaintenancev1alpha1 "github.com/k8s-operators-devops/k8s-maintenance-operator/api/v1alpha1"
 )
 
 const (
