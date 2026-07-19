@@ -16,8 +16,19 @@ The operator never mutates the original application Ingress during normal enable
   - `kubernetes.io/ingress.class: alb`
 - The target Ingress must define `alb.ingress.kubernetes.io/group.name`.
 - `kubectl` access to the target cluster.
+- A `kubectl` client that is within one minor version of the cluster control plane.
+
+Start in a non-production namespace first. IngressGroup is powerful: any user who can create or update Ingresses in the same ALB IngressGroup can affect routing for that group.
 
 ## Installation
+
+Review the manifest before applying it:
+
+```bash
+kubectl apply --dry-run=client --validate=false -f deploy/install.yaml
+```
+
+Install the operator:
 
 ```bash
 kubectl apply -f deploy/install.yaml
@@ -28,9 +39,9 @@ The install manifest includes the namespace, CRD, service account, RBAC, leader 
 ## Verify
 
 ```bash
-kubectl get pods -A
-kubectl get crd
-kubectl get maintenance
+kubectl get pods -n k8s-maintenance-operator-system
+kubectl get crd maintenances.k8smaintenance.io
+kubectl get maintenance -A
 ```
 
 For controller logs:
@@ -68,13 +79,13 @@ spec:
 ## Check Status
 
 ```bash
-kubectl get maintenance
+kubectl get maintenance -n default
 
-kubectl describe maintenance application-maintenance
+kubectl describe maintenance application-maintenance -n default
 
-kubectl get ingress
+kubectl get ingress -n default
 
-kubectl get configmap
+kubectl get configmap -n default
 ```
 
 Confirm the generated maintenance Ingress:
@@ -110,6 +121,7 @@ Or patch the existing resource:
 
 ```bash
 kubectl patch maintenance application-maintenance \
+  -n default \
   --type merge \
   -p '{"spec":{"enabled":false}}'
 ```
