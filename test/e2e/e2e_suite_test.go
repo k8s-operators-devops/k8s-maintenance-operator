@@ -28,7 +28,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/Sumanthk911/k8s-maintenance-operator/test/utils"
+	"github.com/k8s-operators-devops/k8s-maintenance-operator/test/utils"
 )
 
 var (
