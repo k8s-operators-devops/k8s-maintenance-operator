@@ -13,7 +13,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 	"strings"
 	"time"
 
@@ -53,9 +54,10 @@ const (
 	albGroupNameAnnotation  = "alb.ingress.kubernetes.io/group.name"
 	albGroupOrderAnnotation = "alb.ingress.kubernetes.io/group.order"
 	albActionAnnotation     = "alb.ingress.kubernetes.io/actions." + maintenanceActionName
+	albIngressClass         = "alb"
+	fixedResponseBackend    = "fixed-response"
+	ingressBackupDataKey    = "ingress.json"
 )
-
-var log = logf.Log
 
 var targetGroupOnlyAnnotations = []string{
 	"alb.ingress.kubernetes.io/healthcheck-protocol",
@@ -224,7 +226,7 @@ func (r *MaintenanceReconciler) createIngressBackup(
 			Name:      backupConfigMapName(maintenance),
 			Namespace: maintenance.Namespace,
 		},
-		Data: map[string]string{"ingress.json": string(data)},
+		Data: map[string]string{ingressBackupDataKey: string(data)},
 	}
 	// We explicitly delete backups on normal disable, while the owner reference is
 	// the break-glass safety net for garbage collection if the CR disappears.
@@ -243,7 +245,7 @@ func (r *MaintenanceReconciler) createIngressBackup(
 		if !metav1.IsControlledBy(&existing, maintenance) {
 			return fmt.Errorf("backup configmap %s/%s is not controlled by maintenance %s/%s", existing.Namespace, existing.Name, maintenance.Namespace, maintenance.Name)
 		}
-		if strings.TrimSpace(existing.Data["ingress.json"]) == "" {
+		if strings.TrimSpace(existing.Data[ingressBackupDataKey]) == "" {
 			return fmt.Errorf("backup configmap %s/%s is missing ingress.json", existing.Namespace, existing.Name)
 		}
 		maintenance.Status.BackupResourceName = existing.Name
@@ -358,10 +360,10 @@ func validateTargetIngress(ingress *networkingv1.Ingress) error {
 }
 
 func isALBIngress(ingress *networkingv1.Ingress) bool {
-	if ingress.Spec.IngressClassName != nil && *ingress.Spec.IngressClassName == "alb" {
+	if ingress.Spec.IngressClassName != nil && *ingress.Spec.IngressClassName == albIngressClass {
 		return true
 	}
-	return ingress.Annotations["kubernetes.io/ingress.class"] == "alb"
+	return ingress.Annotations["kubernetes.io/ingress.class"] == albIngressClass
 }
 
 func sanitizeMaintenanceAnnotations(source map[string]string, actionJSON string) map[string]string {
@@ -400,7 +402,7 @@ func reconcileAnnotations(existing, desired map[string]string) map[string]string
 			managedKeys = append(managedKeys, key)
 		}
 	}
-	sort.Strings(managedKeys)
+	slices.Sort(managedKeys)
 	for _, key := range managedKeys {
 		if value, ok := desired[key]; ok {
 			next[key] = value
@@ -494,7 +496,7 @@ func (r *MaintenanceReconciler) deleteBackupConfigMap(ctx context.Context, maint
 }
 
 func buildALBActionJSON(maintenance *k8smaintenancev1alpha1.Maintenance) (string, error) {
-	backend := "fixed-response"
+	backend := fixedResponseBackend
 	body := "<html><body><h1>Maintenance</h1></body></html>"
 	if maintenance.Spec.Response != nil {
 		if maintenance.Spec.Response.Backend != "" {
@@ -505,7 +507,7 @@ func buildALBActionJSON(maintenance *k8smaintenancev1alpha1.Maintenance) (string
 		}
 	}
 
-	if backend != "fixed-response" {
+	if backend != fixedResponseBackend {
 		return "", fmt.Errorf("response backend %q is not implemented; supported backend: fixed-response", backend)
 	}
 	if len([]byte(body)) > 1024 {
@@ -513,7 +515,7 @@ func buildALBActionJSON(maintenance *k8smaintenancev1alpha1.Maintenance) (string
 	}
 
 	action := fixedResponseAction{
-		Type: "fixed-response",
+		Type: fixedResponseBackend,
 		FixedResponseConfig: fixedResponseConfig{
 			StatusCode:  "503",
 			ContentType: "text/html",
@@ -596,11 +598,7 @@ func copyStringMap(source map[string]string) map[string]string {
 	if source == nil {
 		return nil
 	}
-	copy := make(map[string]string, len(source))
-	for key, value := range source {
-		copy[key] = value
-	}
-	return copy
+	return maps.Clone(source)
 }
 
 func setMaintenanceStatus(
@@ -683,12 +681,7 @@ func isPermanentConfigurationError(err error) bool {
 }
 
 func containsString(items []string, item string) bool {
-	for _, i := range items {
-		if i == item {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(items, item)
 }
 
 func removeString(items []string, item string) []string {

@@ -219,12 +219,14 @@ ifeq ($(OS),Windows_NT)
 KUSTOMIZE ?= $(if $(wildcard $(LOCALBIN)/kustomize.exe),$(LOCALBIN)/kustomize.exe,go run sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION))
 CONTROLLER_GEN ?= $(if $(wildcard $(LOCALBIN)/controller-gen.exe),$(LOCALBIN)/controller-gen.exe,go run sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION))
 ENVTEST ?= $(if $(wildcard $(LOCALBIN)/setup-envtest.exe),$(LOCALBIN)/setup-envtest.exe,go run sigs.k8s.io/controller-runtime/tools/setup-envtest@$(ENVTEST_VERSION))
-GOLANGCI_LINT ?= $(if $(wildcard $(LOCALBIN)/golangci-lint.exe),$(LOCALBIN)/golangci-lint.exe,go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION))
+GOLANGCI_LINT_BUILDER ?= $(if $(wildcard $(LOCALBIN)/golangci-lint.exe),$(LOCALBIN)/golangci-lint.exe,go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION))
+GOLANGCI_LINT ?= $(LOCALBIN)/custom-gcl.exe
 else
 KUSTOMIZE ?= $(if $(wildcard $(LOCALBIN)/kustomize),$(LOCALBIN)/kustomize,go run sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION))
 CONTROLLER_GEN ?= $(if $(wildcard $(LOCALBIN)/controller-gen),$(LOCALBIN)/controller-gen,go run sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION))
 ENVTEST ?= $(if $(wildcard $(LOCALBIN)/setup-envtest),$(LOCALBIN)/setup-envtest,go run sigs.k8s.io/controller-runtime/tools/setup-envtest@$(ENVTEST_VERSION))
-GOLANGCI_LINT ?= $(if $(wildcard $(LOCALBIN)/golangci-lint),$(LOCALBIN)/golangci-lint,go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION))
+GOLANGCI_LINT_BUILDER ?= $(if $(wildcard $(LOCALBIN)/golangci-lint),$(LOCALBIN)/golangci-lint,go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION))
+GOLANGCI_LINT ?= $(LOCALBIN)/custom-gcl
 endif
 
 ## Tool Versions
@@ -267,8 +269,12 @@ setup-envtest: envtest ## Download the binaries required for ENVTEST in the loca
 envtest: ## Use setup-envtest through go run when no local binary is available.
 	@echo "Using setup-envtest via $(ENVTEST)"
 
+$(GOLANGCI_LINT): .custom-gcl.yml | $(LOCALBIN)
+	@echo "Building custom golangci-lint via $(GOLANGCI_LINT_BUILDER)"
+	@$(GOLANGCI_LINT_BUILDER) custom
+
 .PHONY: golangci-lint
-golangci-lint: ## Use golangci-lint through go run when no local binary is available.
+golangci-lint: $(GOLANGCI_LINT) ## Build and use golangci-lint with module plugins.
 	@echo "Using golangci-lint via $(GOLANGCI_LINT)"
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist.

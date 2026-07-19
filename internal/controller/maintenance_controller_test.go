@@ -31,6 +31,15 @@ import (
 	k8smaintenancev1alpha1 "github.com/k8s-operators-devops/k8s-maintenance-operator/api/v1alpha1"
 )
 
+const (
+	testNamespace      = "default"
+	testALBGroupName   = "shared"
+	testALBScheme      = "internet-facing"
+	testBackupData     = "data"
+	testTargetIngress  = "app-ingress"
+	testMaintenanceUID = "maint-uid"
+)
+
 func TestBuildALBActionJSON(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -42,14 +51,14 @@ func TestBuildALBActionJSON(t *testing.T) {
 		{name: "default HTML", wantBody: "<html><body><h1>Maintenance</h1></body></html>"},
 		{name: "custom HTML", response: &k8smaintenancev1alpha1.MaintenanceResponse{HTML: "<p>down</p>"}, wantBody: "<p>down</p>"},
 		{name: "lower camel case JSON", wantJSONKey: "fixedResponseConfig"},
-		{name: "unsupported backend", response: &k8smaintenancev1alpha1.MaintenanceResponse{Backend: "service"}, wantErr: `response backend "service" is not implemented; supported backend: fixed-response`},
+		{name: "unsupported backend", response: &k8smaintenancev1alpha1.MaintenanceResponse{Backend: "service"}, wantErr: `response backend "service" is not implemented; supported backend: ` + fixedResponseBackend},
 		{name: "body exactly 1024 bytes", response: &k8smaintenancev1alpha1.MaintenanceResponse{HTML: strings.Repeat("a", 1024)}, wantBody: strings.Repeat("a", 1024)},
 		{name: "body greater than 1024 bytes", response: &k8smaintenancev1alpha1.MaintenanceResponse{HTML: strings.Repeat("a", 1025)}, wantErr: "fixed-response HTML exceeds the ALB 1024-byte limit"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			maintenance := newMaintenance("maint", "default", "app-ingress")
+			maintenance := newMaintenance("maint", testTargetIngress)
 			maintenance.Spec.Response = tt.response
 			rendered, err := buildALBActionJSON(maintenance)
 			if tt.wantErr != "" {
@@ -61,7 +70,7 @@ func TestBuildALBActionJSON(t *testing.T) {
 			if err != nil {
 				t.Fatalf("buildALBActionJSON returned error: %v", err)
 			}
-			var action map[string]interface{}
+			var action map[string]any
 			if err := json.Unmarshal([]byte(rendered), &action); err != nil {
 				t.Fatalf("failed to unmarshal action JSON: %v", err)
 			}
@@ -73,11 +82,11 @@ func TestBuildALBActionJSON(t *testing.T) {
 					t.Fatalf("expected key %q in %s", tt.wantJSONKey, rendered)
 				}
 			}
-			if got := action["type"]; got != "fixed-response" {
+			if got := action["type"]; got != fixedResponseBackend {
 				t.Fatalf("expected type fixed-response, got %v", got)
 			}
 			if tt.wantBody != "" {
-				config := action["fixedResponseConfig"].(map[string]interface{})
+				config := action["fixedResponseConfig"].(map[string]any)
 				if got := config["messageBody"]; got != tt.wantBody {
 					t.Fatalf("expected body %q, got %q", tt.wantBody, got)
 				}
@@ -87,7 +96,7 @@ func TestBuildALBActionJSON(t *testing.T) {
 }
 
 func TestNamingHelpers(t *testing.T) {
-	maintenance := newMaintenance("Sample_Maintenance", "default", "App.Ingress")
+	maintenance := newMaintenance("Sample_Maintenance", "App.Ingress")
 	maintenance.UID = types.UID("uid-one")
 
 	name := deterministicDNSSubdomainName("Some_NAME!.$", "stable", false)
@@ -126,11 +135,11 @@ func TestNamingHelpers(t *testing.T) {
 
 func TestAnnotationSanitization(t *testing.T) {
 	annotations := sanitizeMaintenanceAnnotations(map[string]string{
-		albGroupNameAnnotation:                       "shared",
+		albGroupNameAnnotation:                       testALBGroupName,
 		albGroupOrderAnnotation:                      "50",
 		"alb.ingress.kubernetes.io/actions.old":      "old-action",
 		"alb.ingress.kubernetes.io/healthcheck-path": "/healthz",
-		"alb.ingress.kubernetes.io/scheme":           "internet-facing",
+		"alb.ingress.kubernetes.io/scheme":           testALBScheme,
 		"alb.ingress.kubernetes.io/certificate-arn":  "arn",
 	}, "action-json")
 
@@ -140,10 +149,10 @@ func TestAnnotationSanitization(t *testing.T) {
 	if _, exists := annotations["alb.ingress.kubernetes.io/healthcheck-path"]; exists {
 		t.Fatalf("expected target-group health check annotation to be removed")
 	}
-	if got := annotations["alb.ingress.kubernetes.io/scheme"]; got != "internet-facing" {
+	if got := annotations["alb.ingress.kubernetes.io/scheme"]; got != testALBScheme {
 		t.Fatalf("expected ALB-level annotation to be preserved, got %q", got)
 	}
-	if got := annotations[albGroupNameAnnotation]; got != "shared" {
+	if got := annotations[albGroupNameAnnotation]; got != testALBGroupName {
 		t.Fatalf("expected group name shared, got %q", got)
 	}
 	if got := annotations[albGroupOrderAnnotation]; got != maintenanceGroupOrder {
@@ -157,10 +166,10 @@ func TestAnnotationSanitization(t *testing.T) {
 func TestEnsureMaintenanceIngress(t *testing.T) {
 	ctx := context.Background()
 	scheme := testScheme(t)
-	target := newTargetIngress("app-ingress", "default")
+	target := newTargetIngress(testTargetIngress, testNamespace)
 	targetOriginal := target.DeepCopy()
-	maintenance := newMaintenance("maint", "default", target.Name)
-	maintenance.UID = types.UID("maint-uid")
+	maintenance := newMaintenance("maint", target.Name)
+	maintenance.UID = types.UID(testMaintenanceUID)
 	reconciler := &MaintenanceReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(target, maintenance).Build(), Scheme: scheme}
 
 	generated, err := reconciler.ensureMaintenanceIngress(ctx, maintenance, target, "action-json")
@@ -206,9 +215,9 @@ func TestEnsureMaintenanceIngress(t *testing.T) {
 func TestEnsureMaintenanceIngressRejectsInvalidTargets(t *testing.T) {
 	ctx := context.Background()
 	scheme := testScheme(t)
-	maintenance := newMaintenance("maint", "default", "app-ingress")
-	maintenance.UID = types.UID("maint-uid")
-	target := newTargetIngress("app-ingress", "default")
+	maintenance := newMaintenance("maint", testTargetIngress)
+	maintenance.UID = types.UID(testMaintenanceUID)
+	target := newTargetIngress(testTargetIngress, testNamespace)
 
 	tests := []struct {
 		name   string
@@ -237,10 +246,10 @@ func TestEnsureMaintenanceIngressRejectsInvalidTargets(t *testing.T) {
 func TestEnsureMaintenanceIngressRejectsExistingIngressWithAnotherOwner(t *testing.T) {
 	ctx := context.Background()
 	scheme := testScheme(t)
-	target := newTargetIngress("app-ingress", "default")
-	maintenance := newMaintenance("maint", "default", target.Name)
-	maintenance.UID = types.UID("maint-uid")
-	other := newMaintenance("other", "default", target.Name)
+	target := newTargetIngress(testTargetIngress, testNamespace)
+	maintenance := newMaintenance("maint", target.Name)
+	maintenance.UID = types.UID(testMaintenanceUID)
+	other := newMaintenance("other", target.Name)
 	other.UID = types.UID("other-uid")
 	existing := target.DeepCopy()
 	existing.Name = maintenanceIngressName(maintenance)
@@ -257,9 +266,9 @@ func TestEnsureMaintenanceIngressRejectsExistingIngressWithAnotherOwner(t *testi
 func TestCreateIngressBackupBehavior(t *testing.T) {
 	ctx := context.Background()
 	scheme := testScheme(t)
-	target := newTargetIngress("app-ingress", "default")
-	maintenance := newMaintenance("maint", "default", target.Name)
-	maintenance.UID = types.UID("maint-uid")
+	target := newTargetIngress(testTargetIngress, testNamespace)
+	maintenance := newMaintenance("maint", target.Name)
+	maintenance.UID = types.UID(testMaintenanceUID)
 	reconciler := &MaintenanceReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(maintenance).Build(), Scheme: scheme}
 
 	if err := reconciler.createIngressBackup(ctx, maintenance, target); err != nil {
@@ -288,11 +297,11 @@ func TestCreateIngressBackupBehavior(t *testing.T) {
 func TestCreateIngressBackupRejectsInvalidExistingBackup(t *testing.T) {
 	ctx := context.Background()
 	scheme := testScheme(t)
-	target := newTargetIngress("app-ingress", "default")
-	maintenance := newMaintenance("maint", "default", target.Name)
-	maintenance.UID = types.UID("maint-uid")
+	target := newTargetIngress(testTargetIngress, testNamespace)
+	maintenance := newMaintenance("maint", target.Name)
+	maintenance.UID = types.UID(testMaintenanceUID)
 
-	unowned := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: backupConfigMapName(maintenance), Namespace: maintenance.Namespace}, Data: map[string]string{"ingress.json": "data"}}
+	unowned := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: backupConfigMapName(maintenance), Namespace: maintenance.Namespace}, Data: map[string]string{ingressBackupDataKey: testBackupData}}
 	reconciler := &MaintenanceReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(unowned).Build(), Scheme: scheme}
 	if err := reconciler.createIngressBackup(ctx, maintenance, target); err == nil {
 		t.Fatalf("expected unowned backup to be rejected")
@@ -309,7 +318,7 @@ func TestCreateIngressBackupRejectsInvalidExistingBackup(t *testing.T) {
 }
 
 func TestSetMaintenanceStatusTransitionTime(t *testing.T) {
-	maintenance := newMaintenance("maint", "default", "app-ingress")
+	maintenance := newMaintenance("maint", testTargetIngress)
 	maintenance.Generation = 7
 
 	setMaintenanceStatus(maintenance, "Enabled", "Maintenance mode enabled", metav1.ConditionTrue, "MaintenanceEnabled")
@@ -337,8 +346,8 @@ func TestSetMaintenanceStatusTransitionTime(t *testing.T) {
 func TestFinalizerCleanupOrdersGeneratedIngressBeforeBackup(t *testing.T) {
 	ctx := context.Background()
 	scheme := testScheme(t)
-	maintenance := newMaintenance("maint", "default", "app-ingress")
-	maintenance.UID = types.UID("maint-uid")
+	maintenance := newMaintenance("maint", testTargetIngress)
+	maintenance.UID = types.UID(testMaintenanceUID)
 	maintenance.Finalizers = []string{maintenanceFinalizer}
 	now := metav1.Now()
 	maintenance.DeletionTimestamp = &now
@@ -347,7 +356,7 @@ func TestFinalizerCleanupOrdersGeneratedIngressBeforeBackup(t *testing.T) {
 	if err := ctrlSetControllerReferenceForTest(maintenance, ingress, scheme); err != nil {
 		t.Fatalf("failed to set owner: %v", err)
 	}
-	backup := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: backupConfigMapName(maintenance), Namespace: maintenance.Namespace}, Data: map[string]string{"ingress.json": "data"}}
+	backup := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: backupConfigMapName(maintenance), Namespace: maintenance.Namespace}, Data: map[string]string{ingressBackupDataKey: testBackupData}}
 	if err := ctrlSetControllerReferenceForTest(maintenance, backup, scheme); err != nil {
 		t.Fatalf("failed to set backup owner: %v", err)
 	}
@@ -372,9 +381,9 @@ var _ = Describe("Maintenance Controller", func() {
 		ctx := context.Background()
 
 		It("creates backup and generated ingress when enabled", func() {
-			target := newTargetIngress("app-ingress", namespace)
+			target := newTargetIngress(testTargetIngress, namespace)
 			enabled := true
-			maintenance := newMaintenance("enabled-maintenance", namespace, target.Name)
+			maintenance := newMaintenance("enabled-maintenance", target.Name)
 			maintenance.Spec.Enabled = &enabled
 			Expect(k8sClient.Create(ctx, target)).To(Succeed())
 			Expect(k8sClient.Create(ctx, maintenance)).To(Succeed())
@@ -395,7 +404,7 @@ var _ = Describe("Maintenance Controller", func() {
 
 		It("sets failed status when target ingress is missing", func() {
 			enabled := true
-			maintenance := newMaintenance("missing-target", namespace, "does-not-exist")
+			maintenance := newMaintenance("missing-target", "does-not-exist")
 			maintenance.Spec.Enabled = &enabled
 			Expect(k8sClient.Create(ctx, maintenance)).To(Succeed())
 
@@ -413,7 +422,7 @@ var _ = Describe("Maintenance Controller", func() {
 		It("recreates the generated ingress after manual deletion while enabled", func() {
 			target := newTargetIngress("recreate-app-ingress", namespace)
 			enabled := true
-			maintenance := newMaintenance("recreate-maintenance", namespace, target.Name)
+			maintenance := newMaintenance("recreate-maintenance", target.Name)
 			maintenance.Spec.Enabled = &enabled
 			Expect(k8sClient.Create(ctx, target)).To(Succeed())
 			Expect(k8sClient.Create(ctx, maintenance)).To(Succeed())
@@ -444,7 +453,7 @@ var _ = Describe("Maintenance Controller", func() {
 		It("removes the finalizer only after the generated ingress is gone", func() {
 			target := newTargetIngress("finalizer-app-ingress", namespace)
 			enabled := true
-			maintenance := newMaintenance("finalizer-maintenance", namespace, target.Name)
+			maintenance := newMaintenance("finalizer-maintenance", target.Name)
 			maintenance.Spec.Enabled = &enabled
 			Expect(k8sClient.Create(ctx, target)).To(Succeed())
 			Expect(k8sClient.Create(ctx, maintenance)).To(Succeed())
@@ -491,13 +500,13 @@ var _ = Describe("Maintenance Controller", func() {
 	})
 })
 
-func newMaintenance(name, namespace, target string) *k8smaintenancev1alpha1.Maintenance {
+func newMaintenance(name, target string) *k8smaintenancev1alpha1.Maintenance {
 	enabled := false
 	return &k8smaintenancev1alpha1.Maintenance{
 		TypeMeta: metav1.TypeMeta{APIVersion: "k8smaintenance.io/v1alpha1", Kind: "Maintenance"},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: namespace,
+			Namespace: testNamespace,
 		},
 		Spec: k8smaintenancev1alpha1.MaintenanceSpec{
 			TargetIngress: target,
@@ -507,7 +516,7 @@ func newMaintenance(name, namespace, target string) *k8smaintenancev1alpha1.Main
 }
 
 func newTargetIngress(name, namespace string) *networkingv1.Ingress {
-	className := "alb"
+	className := albIngressClass
 	pathType := networkingv1.PathTypePrefix
 	return &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -515,10 +524,10 @@ func newTargetIngress(name, namespace string) *networkingv1.Ingress {
 			Namespace: namespace,
 			Labels:    map[string]string{"app": "demo"},
 			Annotations: map[string]string{
-				albGroupNameAnnotation:                   "shared",
+				albGroupNameAnnotation:                   testALBGroupName,
 				albGroupOrderAnnotation:                  "10",
-				"kubernetes.io/ingress.class":            "alb",
-				"alb.ingress.kubernetes.io/scheme":       "internet-facing",
+				"kubernetes.io/ingress.class":            albIngressClass,
+				"alb.ingress.kubernetes.io/scheme":       testALBScheme,
 				"alb.ingress.kubernetes.io/listen-ports": `[{"HTTP":80}]`,
 				"alb.ingress.kubernetes.io/actions.old":  "old",
 			},
@@ -570,7 +579,7 @@ func assertDNSSubdomain(t *testing.T, name string) {
 
 type testFatalHelper interface {
 	Helper()
-	Fatalf(format string, args ...interface{})
+	Fatalf(format string, args ...any)
 }
 
 func assertAllHTTPBackends(t testFatalHelper, ingress *networkingv1.Ingress, serviceName string) {
@@ -594,7 +603,7 @@ func equalityIngress(a, b *networkingv1.Ingress) bool {
 		jsonEqual(a.Spec, b.Spec)
 }
 
-func jsonEqual(a, b interface{}) bool {
+func jsonEqual(a, b any) bool {
 	ab, _ := json.Marshal(a)
 	bb, _ := json.Marshal(b)
 	return string(ab) == string(bb)
@@ -616,8 +625,8 @@ func metaFindReady(maintenance *k8smaintenancev1alpha1.Maintenance) *metav1.Cond
 func TestDeleteBackupConfigMapRejectsUnownedBackup(t *testing.T) {
 	ctx := context.Background()
 	scheme := testScheme(t)
-	maintenance := newMaintenance("maint", "default", "app-ingress")
-	maintenance.UID = types.UID("maint-uid")
+	maintenance := newMaintenance("maint", testTargetIngress)
+	maintenance.UID = types.UID(testMaintenanceUID)
 	backup := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: backupConfigMapName(maintenance), Namespace: maintenance.Namespace}}
 	reconciler := &MaintenanceReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(backup).Build(), Scheme: scheme}
 
@@ -629,15 +638,15 @@ func TestDeleteBackupConfigMapRejectsUnownedBackup(t *testing.T) {
 func TestDisableDeletesGeneratedResourcesOnly(t *testing.T) {
 	ctx := context.Background()
 	scheme := testScheme(t)
-	target := newTargetIngress("app-ingress", "default")
+	target := newTargetIngress(testTargetIngress, testNamespace)
 	targetOriginal := target.DeepCopy()
-	maintenance := newMaintenance("maint", "default", target.Name)
-	maintenance.UID = types.UID("maint-uid")
-	generated := newTargetIngress(maintenanceIngressName(maintenance), "default")
+	maintenance := newMaintenance("maint", target.Name)
+	maintenance.UID = types.UID(testMaintenanceUID)
+	generated := newTargetIngress(maintenanceIngressName(maintenance), testNamespace)
 	if err := ctrlSetControllerReferenceForTest(maintenance, generated, scheme); err != nil {
 		t.Fatalf("failed to set owner: %v", err)
 	}
-	backup := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: backupConfigMapName(maintenance), Namespace: "default"}, Data: map[string]string{"ingress.json": "data"}}
+	backup := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: backupConfigMapName(maintenance), Namespace: testNamespace}, Data: map[string]string{ingressBackupDataKey: testBackupData}}
 	if err := ctrlSetControllerReferenceForTest(maintenance, backup, scheme); err != nil {
 		t.Fatalf("failed to set owner: %v", err)
 	}
