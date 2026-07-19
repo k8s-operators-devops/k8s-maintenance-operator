@@ -104,7 +104,7 @@ type MaintenanceStatus struct {
 	//
 	// Pending - Resource detected but not processed yet.
 	// Enabled  - Maintenance rules applied successfully.
-	// Disabled - Original ingress restored.
+	// Disabled - Maintenance ingress removed.
 	// Failed   - Reconciliation failed.
 	//
 	// +kubebuilder:validation:Enum=Pending;Enabled;Disabled;Failed

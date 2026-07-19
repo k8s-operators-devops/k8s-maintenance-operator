@@ -72,9 +72,15 @@ var _ = BeforeSuite(func() {
 		ErrorIfCRDPathMissing: true,
 	}
 
-	// Retrieve the first found binary directory to allow running tests from IDEs
-	if getFirstFoundEnvTestBinaryDir() != "" {
-		testEnv.BinaryAssetsDirectory = getFirstFoundEnvTestBinaryDir()
+	// Retrieve the first found binary directory to allow running tests from IDEs.
+	// A clean checkout intentionally does not commit envtest binaries. Direct
+	// `go test ./...` should still be useful, so skip only the envtest-backed
+	// Ginkgo specs when assets are unavailable. `make test` provisions them.
+	envtestBinaryDir := getFirstFoundEnvTestBinaryDir()
+	if envtestBinaryDir != "" {
+		testEnv.BinaryAssetsDirectory = envtestBinaryDir
+	} else if os.Getenv("KUBEBUILDER_ASSETS") == "" {
+		Skip("envtest binaries are not installed; run make setup-envtest or make test")
 	}
 
 	// cfg is defined in this file globally.
@@ -89,7 +95,12 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
-	cancel()
+	if cancel != nil {
+		cancel()
+	}
+	if testEnv == nil || cfg == nil {
+		return
+	}
 	err := testEnv.Stop()
 	if err != nil && strings.Contains(err.Error(), "not supported by windows") {
 		Expect(stopWindowsEnvTestProcesses()).To(Succeed())

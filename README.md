@@ -1,135 +1,154 @@
 # k8s-maintenance-operator
-// TODO(user): Add simple overview of use/purpose
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+`k8s-maintenance-operator` enables maintenance mode for applications exposed through AWS Load Balancer Controller ALB Ingresses.
 
-## Getting Started
+End users install and operate it with `kubectl` only. Go, Kubebuilder, controller-gen, Kustomize, and Make are maintainer tools, not runtime requirements.
 
-### Prerequisites
-- go version v1.24.6+
-- docker version 17.03+.
-- kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
+The operator never mutates the original application Ingress during normal enable or disable. It creates a separate maintenance Ingress in the same ALB IngressGroup and gives it higher precedence with `alb.ingress.kubernetes.io/group.order: "-1000"`.
 
-### To Deploy on the cluster
-**Build and push your image to the location specified by `IMG`:**
+## Prerequisites
 
-```sh
-make docker-build docker-push IMG=<some-registry>/k8s-maintenance-operator:tag
+- Kubernetes v1.25 or newer.
+- AWS Load Balancer Controller installed.
+- An existing application Ingress managed by ALB.
+- The target Ingress must use one of:
+  - `spec.ingressClassName: alb`
+  - `kubernetes.io/ingress.class: alb`
+- The target Ingress must define `alb.ingress.kubernetes.io/group.name`.
+- `kubectl` access to the target cluster.
+
+## Installation
+
+```bash
+kubectl apply -f deploy/install.yaml
 ```
 
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
+The install manifest includes the namespace, CRD, service account, RBAC, leader election RBAC, metrics service, and manager deployment. No webhook resources are included because this operator does not use webhooks.
 
-**Install the CRDs into the cluster:**
+## Verify
 
-```sh
-make install
+```bash
+kubectl get pods -A
+kubectl get crd
+kubectl get maintenance
 ```
 
-**Deploy the Manager to the cluster with the image specified by `IMG`:**
+For controller logs:
 
-```sh
-make deploy IMG=<some-registry>/k8s-maintenance-operator:tag
+```bash
+kubectl logs -n k8s-maintenance-operator-system \
+  deployment/k8s-maintenance-operator-controller-manager \
+  -c manager
 ```
 
-> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
-privileges or be logged in as admin.
+## Enable Maintenance
 
-**Create instances of your solution**
-You can apply the samples (examples) from the config/sample:
+Edit `samples/maintenance-enable.yaml` so `metadata.namespace` and `spec.targetIngress` match your non-production target Ingress first.
 
-```sh
-kubectl apply -k config/samples/
+```bash
+kubectl apply -f samples/maintenance-enable.yaml
 ```
 
->**NOTE**: Ensure that the samples has default values to test it out.
+Example:
 
-### To Uninstall
-**Delete the instances (CRs) from the cluster:**
-
-```sh
-kubectl delete -k config/samples/
+```yaml
+apiVersion: k8smaintenance.io/v1alpha1
+kind: Maintenance
+metadata:
+  name: application-maintenance
+  namespace: default
+spec:
+  targetIngress: application-alb-ingress
+  enabled: true
+  response:
+    backend: fixed-response
+    html: "<html><body><h1>Scheduled Maintenance</h1></body></html>"
 ```
 
-**Delete the APIs(CRDs) from the cluster:**
+## Check Status
 
-```sh
-make uninstall
+```bash
+kubectl get maintenance
+
+kubectl describe maintenance application-maintenance
+
+kubectl get ingress
+
+kubectl get configmap
 ```
 
-**UnDeploy the controller from the cluster:**
+Confirm the generated maintenance Ingress:
 
-```sh
-make undeploy
+- is separate from the original application Ingress;
+- has `k8smaintenance.io/managed-by=maintenance-operator`;
+- has the same `alb.ingress.kubernetes.io/group.name` as the target Ingress;
+- has `alb.ingress.kubernetes.io/group.order: "-1000"`;
+- uses backend service `maintenance` with port name `use-annotation`;
+- contains `alb.ingress.kubernetes.io/actions.maintenance`;
+- does not modify the original Ingress labels, annotations, or spec.
+
+Endpoint check:
+
+```bash
+curl -i https://your-hostname.example.com/
 ```
 
-## Project Distribution
+Expected during maintenance:
 
-Following the options to release and provide this solution to the users.
-
-### By providing a bundle with all YAML files
-
-1. Build the installer for the image built and published in the registry:
-
-```sh
-make build-installer IMG=<some-registry>/k8s-maintenance-operator:tag
+```text
+HTTP/2 503
+content-type: text/html
 ```
 
-**NOTE:** The makefile target mentioned above generates an 'install.yaml'
-file in the dist directory. This file contains all the resources built
-with Kustomize, which are necessary to install this project without its
-dependencies.
+## Disable Maintenance
 
-2. Using the installer
-
-Users can just run 'kubectl apply -f <URL for YAML BUNDLE>' to install
-the project, i.e.:
-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/k8s-maintenance-operator/<tag or branch>/dist/install.yaml
+```bash
+kubectl apply -f samples/maintenance-disable.yaml
 ```
 
-### By providing a Helm Chart
+Or patch the existing resource:
 
-1. Build the chart using the optional helm plugin
-
-```sh
-kubebuilder edit --plugins=helm/v2-alpha
+```bash
+kubectl patch maintenance application-maintenance \
+  --type merge \
+  -p '{"spec":{"enabled":false}}'
 ```
 
-2. See that a chart was generated under 'dist/chart', and users
-can obtain this solution from there.
+The generated maintenance Ingress and backup ConfigMap should be removed. Normal application routing resumes through the unchanged application Ingress.
 
-**NOTE:** If you change the project, you need to update the Helm Chart
-using the same command above to sync the latest changes. Furthermore,
-if you create webhooks, you need to use the above command with
-the '--force' flag and manually ensure that any custom configuration
-previously added to 'dist/chart/values.yaml' or 'dist/chart/manager/manager.yaml'
-is manually re-applied afterwards.
+## Uninstall
 
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
+```bash
+kubectl delete -f deploy/install.yaml
+```
 
-**NOTE:** Run `make help` for more information on all potential `make` targets
+## Troubleshooting
 
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
+- `TargetIngressNotFound`: confirm the `Maintenance` resource is in the same namespace as the target Ingress.
+- `InvalidConfiguration` for missing group name: add `alb.ingress.kubernetes.io/group.name` to the target Ingress.
+- Non-ALB target error: set `spec.ingressClassName: alb` or `kubernetes.io/ingress.class: alb`.
+- No HTTP paths/default backend error: ensure the target Ingress has at least one HTTP path or a default backend.
+- Body limit error: ALB fixed-response message bodies are limited to 1024 bytes.
+- Generated Ingress does not take precedence: confirm both Ingresses are in the same ALB IngressGroup and the generated Ingress has `group.order: "-1000"`.
 
-## License
+## Limitations
 
-Copyright 2026.
+- Only AWS ALB fixed-response mode is currently supported.
+- `nginx` and existing `service` response backends are not implemented.
+- Fixed-response HTML must be 1024 bytes or smaller.
+- The target Ingress must be in the same namespace as the `Maintenance` resource.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+## Maintainers
 
-    http://www.apache.org/licenses/LICENSE-2.0
+Maintainer workflows use the standard Kubebuilder project layout:
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+```bash
+make verify
+make bundle
+```
 
+Documentation:
+
+- [Architecture](docs/architecture.md)
+- [Configuration](docs/configuration.md)
+- [Testing](docs/testing.md)

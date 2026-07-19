@@ -1,0 +1,11 @@
+apiVersion: k8smaintenance.io/v1alpha1
+kind: Maintenance
+metadata:
+  name: application-maintenance
+  namespace: default
+spec:
+  targetIngress: application-alb-ingress
+  enabled: false
+  response:
+    backend: fixed-response
+    html: "<html><body><h1>Scheduled Maintenance</h1></body></html>"

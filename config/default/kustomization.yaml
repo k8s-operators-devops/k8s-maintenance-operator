@@ -8,6 +8,11 @@ namespace: k8s-maintenance-operator-system
 # field above.
 namePrefix: k8s-maintenance-operator-
 
+images:
+- name: controller
+  newName: ghcr.io/k8s-operators-devops/k8s-maintenance-operator
+  newTag: latest
+
 # Labels to add to all resources and selectors.
 #labels:
 #- includeSelectors: true

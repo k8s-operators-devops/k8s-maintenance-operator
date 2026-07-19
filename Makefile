@@ -1,5 +1,5 @@
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG ?= ghcr.io/k8s-operators-devops/k8s-maintenance-operator:latest
 # YEAR defines the year value used for substituting the YEAR placeholder in the boilerplate header.
 ifeq ($(OS),Windows_NT)
 YEAR ?= $(shell powershell -NoProfile -Command "(Get-Date).Year")
@@ -69,7 +69,11 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: manifests generate fmt vet setup-envtest ## Run tests.
+ifeq ($(OS),Windows_NT)
+	for /f "delims=" %%i in ('$(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir "$(LOCALBIN)" -p path') do set "KUBEBUILDER_ASSETS=%%i" && go test ./... -coverprofile cover.out
+else
 	KUBEBUILDER_ASSETS="$(shell "$(ENVTEST)" use $(ENVTEST_K8S_VERSION) --bin-dir "$(LOCALBIN)" -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
+endif
 
 # TODO(user): To use a different vendor for e2e tests, modify the setup under 'tests/e2e'.
 # The default setup assumes Kind is pre-installed and builds/loads the Manager Docker image locally.
@@ -119,6 +123,15 @@ lint-config: golangci-lint ## Verify golangci-lint linter configuration
 .PHONY: build
 build: manifests generate fmt vet ## Build manager binary.
 	go build -o bin/manager cmd/main.go
+
+.PHONY: verify
+verify: fmt vet test manifests build ## Run local validation and whitespace checks.
+	git diff --check
+
+.PHONY: bundle
+bundle: manifests kustomize ## Generate the end-user installation manifest.
+	$(call mkdir-if-needed,deploy)
+	$(KUSTOMIZE) build config/default > deploy/install.yaml
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
@@ -219,6 +232,10 @@ KUSTOMIZE_VERSION ?= v5.8.1
 CONTROLLER_TOOLS_VERSION ?= v0.21.0
 
 #ENVTEST_VERSION is the controller-runtime version to use for setup-envtest, derived from go.mod
+ifeq ($(OS),Windows_NT)
+ENVTEST_VERSION ?= $(shell go list -m -f "{{.Version}}" sigs.k8s.io/controller-runtime 2>NUL)
+ENVTEST_K8S_VERSION ?= $(shell powershell -NoProfile -Command "$$v = go list -m -f '{{.Version}}' k8s.io/api; if ($$v -match '^v?0\.(\d+)') { '1.' + $$Matches[1] } else { $$v }")
+else
 ENVTEST_VERSION ?= $(shell v='$(call gomodver,sigs.k8s.io/controller-runtime)'; \
   [ -n "$$v" ] || { echo "Set ENVTEST_VERSION manually (controller-runtime replace has no tag)" >&2; exit 1; }; \
   printf '%s\n' "$$v")
@@ -227,6 +244,7 @@ ENVTEST_VERSION ?= $(shell v='$(call gomodver,sigs.k8s.io/controller-runtime)'; 
 ENVTEST_K8S_VERSION ?= $(shell v='$(call gomodver,k8s.io/api)'; \
   [ -n "$$v" ] || { echo "Set ENVTEST_K8S_VERSION manually (k8s.io/api replace has no tag)" >&2; exit 1; }; \
   printf '%s\n' "$$v" | sed -E 's/^v?[0-9]+\.([0-9]+).*/1.\1/')
+endif
 
 GOLANGCI_LINT_VERSION ?= v2.12.2
 .PHONY: kustomize

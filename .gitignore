@@ -4,7 +4,7 @@
 *.dll
 *.so
 *.dylib
-bin/*
+/bin/
 Dockerfile.cross
 
 # Test binary, built with `go test -c`
@@ -12,6 +12,14 @@ Dockerfile.cross
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+coverage.out
+cover.out
+
+# Local output and temporary files
+/dist/
+/tmp/
+*.log
+.DS_Store
 
 # Go workspace file
 go.work
@@ -20,8 +28,8 @@ go.work
 !vendor/**/zz_generated.*
 
 # editor and IDE paraphernalia
-.idea
-.vscode
+.idea/
+.vscode/
 *.swp
 *.swo
 *~
