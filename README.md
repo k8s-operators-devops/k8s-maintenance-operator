@@ -35,6 +35,14 @@ kubectl get ingress <target-ingress-name> -n <application-namespace> \
   -o jsonpath='{.metadata.annotations.alb\.ingress\.kubernetes\.io/group\.name}'
 ```
 
+Or inspect it with `describe`:
+
+```bash
+kubectl describe ingress <target-ingress-name> -n <application-namespace>
+```
+
+Confirm the annotations include `alb.ingress.kubernetes.io/group.name: <alb-ingress-group-name>`.
+
 ## Installation
 
 Review the manifest before applying it:
@@ -119,6 +127,12 @@ kubectl get ingress -n <application-namespace>
 kubectl get configmap -n <application-namespace>
 ```
 
+For the target Ingress, confirm the ALB group annotation is present:
+
+```bash
+kubectl describe ingress <target-ingress-name> -n <application-namespace>
+```
+
 Confirm the generated maintenance Ingress:
 
 - is separate from the original application Ingress;
@@ -161,7 +175,7 @@ The generated maintenance Ingress and backup ConfigMap should be removed. Normal
 
 ## Schedule Maintenance
 
-Use `spec.schedule.start` and `spec.schedule.end` to let the controller enable and disable maintenance mode automatically. Timestamps must be RFC3339 values.
+Use `spec.schedule.start` and `spec.schedule.end` to let the controller enable and disable maintenance mode automatically. Timestamps must be RFC3339 values. Choose the timezone that matches your change window by using either `Z` for UTC or an explicit offset such as `-04:00` or `+05:30`.
 
 ```yaml
 apiVersion: k8smaintenance.io/v1alpha1
@@ -192,6 +206,14 @@ Behavior:
 - at or after `end`, maintenance mode is disabled and generated resources are removed;
 - `spec.enabled: false` overrides the schedule and keeps maintenance disabled.
 - `end` must be after `start`; invalid windows are reported with `InvalidSchedule`.
+
+Example with an explicit local timezone offset:
+
+```yaml
+schedule:
+  start: "2026-07-20T18:00:00-04:00"
+  end: "2026-07-20T19:00:00-04:00"
+```
 
 ## Uninstall
 

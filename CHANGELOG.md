@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 The format follows Keep a Changelog, and this project uses semantic versioning while the API is pre-1.0.
 
+## [Unreleased]
+
+### Added
+
+- Timezone and ALB IngressGroup verification guidance for scheduled maintenance.
+
 ## [v0.1.3] - 2026-07-20
 
 ### Added

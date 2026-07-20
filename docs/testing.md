@@ -60,6 +60,14 @@ Confirm the generated maintenance Ingress:
 - has the same ALB group name as the target Ingress;
 - uses `maintenance/use-annotation` for every backend.
 
+Confirm the target Ingress declares the ALB IngressGroup:
+
+```sh
+kubectl describe ingress <target-ingress-name> -n <application-namespace>
+```
+
+Look for `alb.ingress.kubernetes.io/group.name: <alb-ingress-group-name>` in the annotations.
+
 ## Curl Verification
 
 ```sh
@@ -94,7 +102,7 @@ The generated maintenance Ingress and backup ConfigMap should be gone. The appli
 
 ## Schedule Maintenance
 
-Update `samples/maintenance-scheduled.yaml` so `<maintenance-name>`, `<application-namespace>`, `<target-ingress-name>`, `spec.schedule.start`, and `spec.schedule.end` match a non-production ALB Ingress and maintenance window.
+Update `samples/maintenance-scheduled.yaml` so `<maintenance-name>`, `<application-namespace>`, `<target-ingress-name>`, `spec.schedule.start`, and `spec.schedule.end` match a non-production ALB Ingress and maintenance window. Use `Z` for UTC or an explicit RFC3339 offset such as `-04:00` or `+05:30` for the timezone your change window uses.
 
 ```sh
 kubectl apply -f samples/maintenance-scheduled.yaml

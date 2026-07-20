@@ -42,6 +42,8 @@ Reserved API field from earlier designs. The controller always uses `alb.ingress
 
 Optional maintenance window. `start` and `end` are RFC3339 timestamps. The controller enables maintenance inside the window and disables it outside the window. `start` or `end` may be omitted for open-ended schedules.
 
+End users choose the timezone by writing the timestamp with either `Z` for UTC or an explicit offset such as `-04:00` or `+05:30`.
+
 When both fields are set, `end` must be after `start`. Invalid windows are rejected with `status.phase: Failed` and reason `InvalidSchedule`.
 
 Example:
@@ -52,6 +54,16 @@ spec:
   schedule:
     start: "2026-07-20T22:00:00Z"
     end: "2026-07-20T23:00:00Z"
+```
+
+Equivalent example with an explicit local timezone offset:
+
+```yaml
+spec:
+  targetIngress: <target-ingress-name>
+  schedule:
+    start: "2026-07-20T18:00:00-04:00"
+    end: "2026-07-20T19:00:00-04:00"
 ```
 
 ## Target Ingress Requirements
@@ -66,6 +78,14 @@ The target Ingress must:
 The operator copies ALB-level annotations that are relevant to the load balancer and removes annotations that conflict with fixed-response behavior.
 
 The group name is mandatory because the operator creates a separate maintenance Ingress that joins the same ALB IngressGroup as the existing application Ingress. If the target Ingress is not grouped, the controller reports `InvalidConfiguration` and does not create the maintenance overlay.
+
+Verify the group name before scheduling or enabling maintenance:
+
+```sh
+kubectl describe ingress <target-ingress-name> -n <application-namespace>
+```
+
+Confirm the annotations include `alb.ingress.kubernetes.io/group.name: <alb-ingress-group-name>`.
 
 ## Examples
 

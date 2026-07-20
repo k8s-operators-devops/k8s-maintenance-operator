@@ -6,6 +6,7 @@ metadata:
 spec:
   targetIngress: <target-ingress-name>
   schedule:
+    # Use RFC3339 timestamps. Choose UTC with Z or a local offset such as -04:00.
     start: "2026-07-20T22:00:00Z"
     end: "2026-07-20T23:00:00Z"
   response:
