@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/k8s-operators-devops/k8s-maintenance-operator.git
-    targetRevision: v0.1.0
+    targetRevision: v0.1.2
     path: deploy
   destination:
     server: https://kubernetes.default.svc
@@ -18,4 +18,3 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-
