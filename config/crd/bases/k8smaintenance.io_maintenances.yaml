@@ -53,7 +53,10 @@ spec:
             description: Desired state.
             properties:
               enabled:
-                description: Enable or disable maintenance mode.
+                description: |-
+                  Enable or disable maintenance mode.
+                  When Schedule is set, nil or true allows the schedule to control
+                  maintenance mode and false acts as a manual override.
                 type: boolean
               priority:
                 default: 0
@@ -97,7 +100,10 @@ spec:
                     type: boolean
                 type: object
               schedule:
-                description: Optional maintenance schedule.
+                description: |-
+                  Optional maintenance schedule.
+                  When set, maintenance is enabled inside the start/end window
+                  and disabled outside it unless Enabled is explicitly false.
                 properties:
                   end:
                     description: Maintenance end time (RFC3339).

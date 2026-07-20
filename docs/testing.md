@@ -92,6 +92,17 @@ kubectl describe maintenance <maintenance-name> -n <application-namespace>
 
 The generated maintenance Ingress and backup ConfigMap should be gone. The application Ingress should remain unchanged.
 
+## Schedule Maintenance
+
+Update `samples/maintenance-scheduled.yaml` so `<maintenance-name>`, `<application-namespace>`, `<target-ingress-name>`, `spec.schedule.start`, and `spec.schedule.end` match a non-production ALB Ingress and maintenance window.
+
+```sh
+kubectl apply -f samples/maintenance-scheduled.yaml
+kubectl describe maintenance <maintenance-name> -n <application-namespace>
+```
+
+Before the start time, the resource should report `Pending`. During the window, it should report `Enabled`. At or after the end time, it should report `Disabled` and generated resources should be removed.
+
 ## Finalizer Checks
 
 Delete the `Maintenance` resource:

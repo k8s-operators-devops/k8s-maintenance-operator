@@ -52,7 +52,7 @@ kubectl apply -f deploy/install.yaml
 Install a pinned release:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/k8s-operators-devops/k8s-maintenance-operator/v0.1.2/deploy/install.yaml
+kubectl apply -f https://raw.githubusercontent.com/k8s-operators-devops/k8s-maintenance-operator/v0.1.3/deploy/install.yaml
 ```
 
 The install manifest includes the namespace, CRD, service account, RBAC, leader election RBAC, metrics service, and manager deployment. No webhook resources are included because this operator does not use webhooks.
@@ -60,7 +60,7 @@ The install manifest includes the namespace, CRD, service account, RBAC, leader 
 The controller image is published to GHCR and pinned in the release manifest:
 
 ```text
-ghcr.io/k8s-operators-devops/k8s-maintenance-operator:v0.1.2
+ghcr.io/k8s-operators-devops/k8s-maintenance-operator:v0.1.3
 ```
 
 ## Verify
@@ -158,6 +158,40 @@ kubectl patch maintenance <maintenance-name> \
 ```
 
 The generated maintenance Ingress and backup ConfigMap should be removed. Normal application routing resumes through the unchanged application Ingress.
+
+## Schedule Maintenance
+
+Use `spec.schedule.start` and `spec.schedule.end` to let the controller enable and disable maintenance mode automatically. Timestamps must be RFC3339 values.
+
+```yaml
+apiVersion: k8smaintenance.io/v1alpha1
+kind: Maintenance
+metadata:
+  name: <maintenance-name>
+  namespace: <application-namespace>
+spec:
+  targetIngress: <target-ingress-name>
+  schedule:
+    start: "2026-07-20T22:00:00Z"
+    end: "2026-07-20T23:00:00Z"
+  response:
+    backend: fixed-response
+    html: "<html><body><h1>Scheduled Maintenance</h1></body></html>"
+```
+
+Apply the scheduled sample:
+
+```bash
+kubectl apply -f samples/maintenance-scheduled.yaml
+```
+
+Behavior:
+
+- before `start`, the resource stays `Pending` and the generated maintenance Ingress is absent;
+- from `start` until `end`, maintenance mode is enabled;
+- at or after `end`, maintenance mode is disabled and generated resources are removed;
+- `spec.enabled: false` overrides the schedule and keeps maintenance disabled.
+- `end` must be after `start`; invalid windows are reported with `InvalidSchedule`.
 
 ## Uninstall
 

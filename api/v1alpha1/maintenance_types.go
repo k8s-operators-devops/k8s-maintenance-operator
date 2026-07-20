@@ -29,6 +29,8 @@ type MaintenanceSpec struct {
 	TargetIngress string `json:"targetIngress"`
 
 	// Enable or disable maintenance mode.
+	// When Schedule is set, nil or true allows the schedule to control
+	// maintenance mode and false acts as a manual override.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 
@@ -44,6 +46,8 @@ type MaintenanceSpec struct {
 	Priority int `json:"priority,omitempty"`
 
 	// Optional maintenance schedule.
+	// When set, maintenance is enabled inside the start/end window
+	// and disabled outside it unless Enabled is explicitly false.
 	// +optional
 	Schedule *MaintenanceSchedule `json:"schedule,omitempty"`
 }

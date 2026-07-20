@@ -119,15 +119,95 @@ func (r *MaintenanceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, nil
 	}
 
-	enabled := false
-	if maintenance.Spec.Enabled != nil {
-		enabled = *maintenance.Spec.Enabled
+	now := time.Now()
+	scheduleDecision := evaluateSchedule(&maintenance, now)
+	if scheduleDecision.invalid {
+		return r.permanentFailure(ctx, &maintenance, &origStatus, "InvalidSchedule", scheduleDecision.message)
+	}
+	if scheduleDecision.pending {
+		return r.pendingMaintenance(ctx, &maintenance, &origStatus, scheduleDecision.message, scheduleDecision.requeueAfter)
 	}
 
-	if enabled {
-		return r.enableMaintenance(ctx, &maintenance, &origStatus)
+	if scheduleDecision.enabled {
+		result, err := r.enableMaintenance(ctx, &maintenance, &origStatus)
+		if err != nil || scheduleDecision.requeueAfter <= 0 {
+			return result, err
+		}
+		result.RequeueAfter = scheduleDecision.requeueAfter
+		return result, err
 	}
-	return r.disableMaintenance(ctx, &maintenance, &origStatus)
+	result, err := r.disableMaintenance(ctx, &maintenance, &origStatus)
+	if err != nil || scheduleDecision.requeueAfter <= 0 {
+		return result, err
+	}
+	result.RequeueAfter = scheduleDecision.requeueAfter
+	return result, err
+}
+
+type scheduleDecision struct {
+	enabled      bool
+	pending      bool
+	invalid      bool
+	message      string
+	requeueAfter time.Duration
+}
+
+func evaluateSchedule(maintenance *k8smaintenancev1alpha1.Maintenance, now time.Time) scheduleDecision {
+	if maintenance.Spec.Schedule == nil {
+		enabled := false
+		if maintenance.Spec.Enabled != nil {
+			enabled = *maintenance.Spec.Enabled
+		}
+		return scheduleDecision{enabled: enabled}
+	}
+
+	if maintenance.Spec.Enabled != nil && !*maintenance.Spec.Enabled {
+		return scheduleDecision{enabled: false}
+	}
+
+	schedule := maintenance.Spec.Schedule
+	if schedule.Start != nil && schedule.End != nil && !schedule.End.Time.After(schedule.Start.Time) {
+		return scheduleDecision{
+			invalid: true,
+			message: fmt.Sprintf("schedule end %s must be after start %s", schedule.End.Time.UTC().Format(time.RFC3339), schedule.Start.Time.UTC().Format(time.RFC3339)),
+		}
+	}
+	if schedule.Start != nil && now.Before(schedule.Start.Time) {
+		return scheduleDecision{
+			enabled:      false,
+			pending:      true,
+			message:      fmt.Sprintf("Maintenance mode scheduled to start at %s", schedule.Start.Time.UTC().Format(time.RFC3339)),
+			requeueAfter: schedule.Start.Time.Sub(now),
+		}
+	}
+	if schedule.End != nil && !now.Before(schedule.End.Time) {
+		return scheduleDecision{enabled: false}
+	}
+
+	decision := scheduleDecision{enabled: true}
+	if schedule.End != nil {
+		decision.requeueAfter = schedule.End.Time.Sub(now)
+	}
+	return decision
+}
+
+func (r *MaintenanceReconciler) pendingMaintenance(
+	ctx context.Context,
+	maintenance *k8smaintenancev1alpha1.Maintenance,
+	origStatus *k8smaintenancev1alpha1.MaintenanceStatus,
+	message string,
+	requeueAfter time.Duration,
+) (ctrl.Result, error) {
+	if err := r.deleteMaintenanceIngress(ctx, maintenance); err != nil {
+		return r.fail(ctx, maintenance, origStatus, "CleanupFailed", "failed to remove maintenance ingress before scheduled start: "+err.Error(), err)
+	}
+	if err := r.deleteBackupConfigMap(ctx, maintenance); err != nil {
+		return r.fail(ctx, maintenance, origStatus, "CleanupFailed", "failed to remove backup configmap before scheduled start: "+err.Error(), err)
+	}
+	maintenance.Status.BackupCreated = false
+	maintenance.Status.BackupResourceName = ""
+	setMaintenanceStatus(maintenance, "Pending", message, metav1.ConditionFalse, "MaintenanceScheduled")
+	return ctrl.Result{RequeueAfter: requeueAfter}, r.updateStatusIfChanged(ctx, maintenance, origStatus)
 }
 
 func (r *MaintenanceReconciler) enableMaintenance(

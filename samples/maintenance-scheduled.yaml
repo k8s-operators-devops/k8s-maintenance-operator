@@ -1,0 +1,13 @@
+apiVersion: k8smaintenance.io/v1alpha1
+kind: Maintenance
+metadata:
+  name: <maintenance-name>
+  namespace: <application-namespace>
+spec:
+  targetIngress: <target-ingress-name>
+  schedule:
+    start: "2026-07-20T22:00:00Z"
+    end: "2026-07-20T23:00:00Z"
+  response:
+    backend: fixed-response
+    html: "<html><body><h1>Scheduled Maintenance</h1></body></html>"

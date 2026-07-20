@@ -12,6 +12,8 @@ The operator uses this field to find the target Ingress. Metadata labels on the 
 
 Optional boolean. When `true`, the operator creates or reconciles the generated maintenance Ingress. When `false` or omitted, the operator removes generated maintenance resources.
 
+When `spec.schedule` is set, omitted or `true` allows the schedule to control maintenance mode. `false` is a manual override that keeps maintenance disabled.
+
 `spec.response`
 
 Optional response configuration. If omitted, the operator uses a default fixed-response HTML body.
@@ -38,7 +40,19 @@ Reserved API field from earlier designs. The controller always uses `alb.ingress
 
 `spec.schedule`
 
-Reserved for future scheduling support. The current controller reconciles the explicit `spec.enabled` value.
+Optional maintenance window. `start` and `end` are RFC3339 timestamps. The controller enables maintenance inside the window and disables it outside the window. `start` or `end` may be omitted for open-ended schedules.
+
+When both fields are set, `end` must be after `start`. Invalid windows are rejected with `status.phase: Failed` and reason `InvalidSchedule`.
+
+Example:
+
+```yaml
+spec:
+  targetIngress: <target-ingress-name>
+  schedule:
+    start: "2026-07-20T22:00:00Z"
+    end: "2026-07-20T23:00:00Z"
+```
 
 ## Target Ingress Requirements
 
@@ -65,6 +79,12 @@ Disable maintenance:
 
 ```sh
 kubectl apply -f samples/maintenance-disable.yaml
+```
+
+Schedule maintenance:
+
+```sh
+kubectl apply -f samples/maintenance-scheduled.yaml
 ```
 
 Patch an existing resource:

@@ -343,6 +343,101 @@ func TestSetMaintenanceStatusTransitionTime(t *testing.T) {
 	}
 }
 
+func TestEvaluateSchedule(t *testing.T) {
+	now := time.Date(2026, 7, 20, 22, 0, 0, 0, time.UTC)
+	start := metav1.NewTime(now.Add(time.Hour))
+	end := metav1.NewTime(now.Add(2 * time.Hour))
+
+	tests := []struct {
+		name        string
+		enabled     *bool
+		schedule    *k8smaintenancev1alpha1.MaintenanceSchedule
+		now         time.Time
+		wantEnabled bool
+		wantPending bool
+		wantInvalid bool
+		wantRequeue time.Duration
+		wantMsgPart string
+	}{
+		{name: "no schedule defaults disabled", now: now},
+		{name: "manual enabled without schedule", enabled: boolPtr(true), now: now, wantEnabled: true},
+		{name: "manual disabled overrides schedule", enabled: boolPtr(false), schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &start, End: &end}, now: now.Add(90 * time.Minute)},
+		{name: "pending before start", schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &start, End: &end}, now: now, wantPending: true, wantRequeue: time.Hour, wantMsgPart: "scheduled to start"},
+		{name: "enabled inside window without explicit enabled", schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &start, End: &end}, now: now.Add(90 * time.Minute), wantEnabled: true, wantRequeue: 30 * time.Minute},
+		{name: "enabled inside window with explicit enabled true", enabled: boolPtr(true), schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &start, End: &end}, now: now.Add(90 * time.Minute), wantEnabled: true, wantRequeue: 30 * time.Minute},
+		{name: "disabled at end", schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &start, End: &end}, now: end.Time},
+		{name: "enabled with start only after start", schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &start}, now: now.Add(90 * time.Minute), wantEnabled: true},
+		{name: "invalid when end is not after start", schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &end, End: &start}, now: now, wantInvalid: true, wantMsgPart: "must be after start"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			maintenance := newMaintenance("maint", testTargetIngress)
+			maintenance.Spec.Enabled = tt.enabled
+			maintenance.Spec.Schedule = tt.schedule
+
+			got := evaluateSchedule(maintenance, tt.now)
+			if got.enabled != tt.wantEnabled {
+				t.Fatalf("expected enabled %v, got %v", tt.wantEnabled, got.enabled)
+			}
+			if got.pending != tt.wantPending {
+				t.Fatalf("expected pending %v, got %v", tt.wantPending, got.pending)
+			}
+			if got.invalid != tt.wantInvalid {
+				t.Fatalf("expected invalid %v, got %v", tt.wantInvalid, got.invalid)
+			}
+			if got.requeueAfter != tt.wantRequeue {
+				t.Fatalf("expected requeue %v, got %v", tt.wantRequeue, got.requeueAfter)
+			}
+			if tt.wantMsgPart != "" && !strings.Contains(got.message, tt.wantMsgPart) {
+				t.Fatalf("expected message containing %q, got %q", tt.wantMsgPart, got.message)
+			}
+		})
+	}
+}
+
+func TestPendingMaintenanceRemovesGeneratedResources(t *testing.T) {
+	ctx := context.Background()
+	scheme := testScheme(t)
+	maintenance := newMaintenance("maint", testTargetIngress)
+	maintenance.UID = types.UID(testMaintenanceUID)
+	maintenance.Finalizers = []string{maintenanceFinalizer}
+	generated := newTargetIngress(maintenanceIngressName(maintenance), testNamespace)
+	if err := ctrlSetControllerReferenceForTest(maintenance, generated, scheme); err != nil {
+		t.Fatalf("failed to set owner: %v", err)
+	}
+	backup := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: backupConfigMapName(maintenance), Namespace: testNamespace}, Data: map[string]string{ingressBackupDataKey: testBackupData}}
+	if err := ctrlSetControllerReferenceForTest(maintenance, backup, scheme); err != nil {
+		t.Fatalf("failed to set owner: %v", err)
+	}
+	maintenance.Status.BackupCreated = true
+	maintenance.Status.BackupResourceName = backup.Name
+	reconciler := &MaintenanceReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(maintenance, generated, backup).WithStatusSubresource(maintenance).Build(), Scheme: scheme}
+
+	result, err := reconciler.pendingMaintenance(ctx, maintenance, &maintenance.Status, "scheduled", 5*time.Minute)
+	if err != nil {
+		t.Fatalf("pendingMaintenance returned error: %v", err)
+	}
+	if result.RequeueAfter != 5*time.Minute {
+		t.Fatalf("expected requeue, got %#v", result)
+	}
+	if maintenance.Status.Phase != "Pending" {
+		t.Fatalf("expected Pending phase, got %q", maintenance.Status.Phase)
+	}
+	if maintenance.Status.BackupCreated || maintenance.Status.BackupResourceName != "" {
+		t.Fatalf("expected backup status cleared, got %#v", maintenance.Status)
+	}
+
+	var gotGenerated networkingv1.Ingress
+	if err := reconciler.Get(ctx, client.ObjectKey{Name: generated.Name, Namespace: generated.Namespace}, &gotGenerated); !apierrors.IsNotFound(err) {
+		t.Fatalf("expected generated ingress deleted, got %v", err)
+	}
+	var gotBackup corev1.ConfigMap
+	if err := reconciler.Get(ctx, client.ObjectKey{Name: backup.Name, Namespace: backup.Namespace}, &gotBackup); !apierrors.IsNotFound(err) {
+		t.Fatalf("expected backup configmap deleted, got %v", err)
+	}
+}
+
 func TestFinalizerCleanupOrdersGeneratedIngressBeforeBackup(t *testing.T) {
 	ctx := context.Background()
 	scheme := testScheme(t)
@@ -513,6 +608,10 @@ func newMaintenance(name, target string) *k8smaintenancev1alpha1.Maintenance {
 			Enabled:       &enabled,
 		},
 	}
+}
+
+func boolPtr(value bool) *bool {
+	return &value
 }
 
 func newTargetIngress(name, namespace string) *networkingv1.Ingress {

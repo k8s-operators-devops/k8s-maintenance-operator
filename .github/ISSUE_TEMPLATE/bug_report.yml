@@ -38,6 +38,6 @@ body:
     attributes:
       label: Versions
       description: Kubernetes, AWS Load Balancer Controller, and operator version.
-      placeholder: "Kubernetes v1.34, AWS LBC v2.x, operator v0.1.2"
+      placeholder: "Kubernetes v1.34, AWS LBC v2.x, operator v0.1.3"
     validations:
       required: true
