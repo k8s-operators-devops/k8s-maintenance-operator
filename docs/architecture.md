@@ -1,5 +1,20 @@
 # Architecture
 
+## At a Glance
+
+```mermaid
+flowchart LR
+    User[End user] --> ALB[AWS ALB]
+    ALB --> Group[ALB IngressGroup]
+    Group --> Maint[Generated maintenance Ingress<br/>group.order -1000]
+    Maint --> Fixed[ALB fixed-response<br/>HTTP 503]
+    Group -. lower precedence .-> App[Original application Ingress]
+    App -. unchanged .-> Service[Application Service]
+    Service -. unchanged .-> Pods[Application Pods]
+```
+
+The operator gives the ALB a higher-priority maintenance rule without rewriting the application team's Ingress. That is the whole value proposition.
+
 ## Maintenance Custom Resource
 
 The `Maintenance` custom resource is the operator API for enabling or disabling maintenance mode for one application Ingress. A resource names a target Ingress through `spec.targetIngress` and controls behavior through `spec.enabled`.

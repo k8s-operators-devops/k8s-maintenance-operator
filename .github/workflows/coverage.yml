@@ -1,4 +1,4 @@
-name: E2E Tests
+name: Coverage
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 permissions: {}
 
 jobs:
-  test-e2e:
+  coverage:
     permissions:
       contents: read
     name: Run on Ubuntu
@@ -23,16 +23,13 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Install Kind
+      - name: Generate coverage
         run: |
-          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.30.0/kind-linux-$(go env GOARCH)
-          chmod +x ./kind
-          sudo mv ./kind /usr/local/bin/kind
+          go test ./... -coverprofile=cover.out
+          go tool cover -func=cover.out
 
-      - name: Verify kind installation
-        run: kind version
-
-      - name: Running Test e2e
-        run: |
-          go mod tidy
-          make test-e2e
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage
+          path: cover.out

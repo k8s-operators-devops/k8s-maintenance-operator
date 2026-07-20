@@ -1,0 +1,44 @@
+name: Bug Report
+description: Report a reproducible problem with the operator.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: impact
+    attributes:
+      label: Operational impact
+      description: What broke for the user or platform team?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Include the Maintenance resource, target Ingress shape, and commands used.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Kubernetes, AWS Load Balancer Controller, and operator version.
+      placeholder: "Kubernetes v1.34, AWS LBC v2.x, operator v0.1.0"
+    validations:
+      required: true
+

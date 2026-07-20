@@ -1,0 +1,36 @@
+name: Feature Request
+description: Propose an operator improvement tied to real operational pain.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: pain
+    attributes:
+      label: Problem
+      description: What maintenance-mode workflow is painful today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+  - type: dropdown
+    id: audience
+    attributes:
+      label: Primary user
+      options:
+        - Application team
+        - Platform team
+        - SRE/on-call team
+        - Other
+    validations:
+      required: true
+

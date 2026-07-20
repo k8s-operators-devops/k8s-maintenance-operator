@@ -1,5 +1,13 @@
 # k8s-maintenance-operator
 
+[![Tests](https://github.com/k8s-operators-devops/k8s-maintenance-operator/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/k8s-operators-devops/k8s-maintenance-operator/actions/workflows/test.yml)
+[![Lint](https://github.com/k8s-operators-devops/k8s-maintenance-operator/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/k8s-operators-devops/k8s-maintenance-operator/actions/workflows/lint.yml)
+[![E2E Tests](https://github.com/k8s-operators-devops/k8s-maintenance-operator/actions/workflows/test-e2e.yml/badge.svg?branch=main)](https://github.com/k8s-operators-devops/k8s-maintenance-operator/actions/workflows/test-e2e.yml)
+[![Coverage](https://github.com/k8s-operators-devops/k8s-maintenance-operator/actions/workflows/coverage.yml/badge.svg?branch=main)](https://github.com/k8s-operators-devops/k8s-maintenance-operator/actions/workflows/coverage.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/k8s-operators-devops/k8s-maintenance-operator)](https://goreportcard.com/report/github.com/k8s-operators-devops/k8s-maintenance-operator)
+[![Latest Release](https://img.shields.io/github/v/release/k8s-operators-devops/k8s-maintenance-operator?include_prereleases)](https://github.com/k8s-operators-devops/k8s-maintenance-operator/releases)
+[![License](https://img.shields.io/github/license/k8s-operators-devops/k8s-maintenance-operator)](LICENSE)
+
 `k8s-maintenance-operator` enables maintenance mode for applications exposed through AWS Load Balancer Controller ALB Ingresses.
 
 End users install and operate it with `kubectl` only. Go, Kubebuilder, controller-gen, Kustomize, and Make are maintainer tools, not runtime requirements.
@@ -32,6 +40,12 @@ Install the operator:
 
 ```bash
 kubectl apply -f deploy/install.yaml
+```
+
+Install a pinned release:
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/k8s-operators-devops/k8s-maintenance-operator/v0.1.0/deploy/install.yaml
 ```
 
 The install manifest includes the namespace, CRD, service account, RBAC, leader election RBAC, metrics service, and manager deployment. No webhook resources are included because this operator does not use webhooks.
@@ -150,6 +164,8 @@ kubectl delete -f deploy/install.yaml
 - Fixed-response HTML must be 1024 bytes or smaller.
 - The target Ingress must be in the same namespace as the `Maintenance` resource.
 
+See [Roadmap](ROADMAP.md) for planned work, including central platform-team control across namespaces.
+
 ## Maintainers
 
 Maintainer workflows use the standard Kubebuilder project layout:
@@ -164,3 +180,7 @@ Documentation:
 - [Architecture](docs/architecture.md)
 - [Configuration](docs/configuration.md)
 - [Testing](docs/testing.md)
+- [Pain-relief blog draft](docs/blog/aws-load-balancer-controller-maintenance-page.md)
+- [GitOps examples](examples/gitops)
+- [Changelog](CHANGELOG.md)
+- [Contributing](CONTRIBUTING.md)
