@@ -166,7 +166,7 @@ func evaluateSchedule(maintenance *k8smaintenancev1alpha1.Maintenance, now time.
 	}
 
 	schedule := maintenance.Spec.Schedule
-	if schedule.Start != nil && schedule.End != nil && !schedule.End.Time.After(schedule.Start.Time) {
+	if schedule.Start != nil && schedule.End != nil && !schedule.End.After(schedule.Start.Time) {
 		return scheduleDecision{
 			invalid: true,
 			message: fmt.Sprintf("schedule end %s must be after start %s", schedule.End.Time.UTC().Format(time.RFC3339), schedule.Start.Time.UTC().Format(time.RFC3339)),
@@ -177,7 +177,7 @@ func evaluateSchedule(maintenance *k8smaintenancev1alpha1.Maintenance, now time.
 			enabled:      false,
 			pending:      true,
 			message:      fmt.Sprintf("Maintenance mode scheduled to start at %s", schedule.Start.Time.UTC().Format(time.RFC3339)),
-			requeueAfter: schedule.Start.Time.Sub(now),
+			requeueAfter: schedule.Start.Sub(now),
 		}
 	}
 	if schedule.End != nil && !now.Before(schedule.End.Time) {
@@ -186,7 +186,7 @@ func evaluateSchedule(maintenance *k8smaintenancev1alpha1.Maintenance, now time.
 
 	decision := scheduleDecision{enabled: true}
 	if schedule.End != nil {
-		decision.requeueAfter = schedule.End.Time.Sub(now)
+		decision.requeueAfter = schedule.End.Sub(now)
 	}
 	return decision
 }
