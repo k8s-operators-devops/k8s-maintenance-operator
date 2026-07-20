@@ -30,11 +30,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/k8s-operators-devops/k8s-maintenance-operator/test/utils"
+	"github.com/k8s-operators-devops/app-maintenance-operator/test/utils"
 )
 
 // namespace where the project is deployed in
-const namespace = "maintenance-operator"
+const namespace = "alb-maintenance-operator"
 
 // serviceAccountName created for the project
 const serviceAccountName = "alb-maintenance"

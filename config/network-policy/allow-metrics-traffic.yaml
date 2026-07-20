@@ -5,17 +5,17 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   labels:
-    app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/name: app-maintenance-operator
     app.kubernetes.io/component: controller
     app.kubernetes.io/version: v1.0.0
     app.kubernetes.io/managed-by: kustomize
   name: allow-metrics-traffic
-  namespace: maintenance-operator
+  namespace: alb-maintenance-operator
 spec:
   podSelector:
     matchLabels:
       control-plane: alb-maintenance
-      app.kubernetes.io/name: k8s-maintenance-operator
+      app.kubernetes.io/name: app-maintenance-operator
   policyTypes:
     - Ingress
   ingress:

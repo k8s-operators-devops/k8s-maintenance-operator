@@ -1,4 +1,4 @@
-module github.com/k8s-operators-devops/k8s-maintenance-operator
+module github.com/k8s-operators-devops/app-maintenance-operator
 
 go 1.26.0
 

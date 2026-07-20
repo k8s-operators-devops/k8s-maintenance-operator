@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: k8s-maintenance-operator
+  name: app-maintenance-operator
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://github.com/k8s-operators-devops/k8s-maintenance-operator.git
+    repoURL: https://github.com/k8s-operators-devops/app-maintenance-operator.git
     targetRevision: v1.0.0
     path: deploy
   destination:
     server: https://kubernetes.default.svc
-    namespace: maintenance-operator
+    namespace: alb-maintenance-operator
   syncPolicy:
     automated:
       prune: true

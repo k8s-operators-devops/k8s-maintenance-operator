@@ -1,14 +1,16 @@
-# k8s-maintenance-operator
+# app-maintenance-operator
 
-[![Tests](https://github.com/k8s-operators-devops/k8s-maintenance-operator/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/k8s-operators-devops/k8s-maintenance-operator/actions/workflows/test.yml)
-[![Lint](https://github.com/k8s-operators-devops/k8s-maintenance-operator/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/k8s-operators-devops/k8s-maintenance-operator/actions/workflows/lint.yml)
-[![E2E Tests](https://github.com/k8s-operators-devops/k8s-maintenance-operator/actions/workflows/test-e2e.yml/badge.svg?branch=main)](https://github.com/k8s-operators-devops/k8s-maintenance-operator/actions/workflows/test-e2e.yml)
-[![Coverage](https://github.com/k8s-operators-devops/k8s-maintenance-operator/actions/workflows/coverage.yml/badge.svg?branch=main)](https://github.com/k8s-operators-devops/k8s-maintenance-operator/actions/workflows/coverage.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/k8s-operators-devops/k8s-maintenance-operator)](https://goreportcard.com/report/github.com/k8s-operators-devops/k8s-maintenance-operator)
-[![Latest Release](https://img.shields.io/github/v/release/k8s-operators-devops/k8s-maintenance-operator?include_prereleases)](https://github.com/k8s-operators-devops/k8s-maintenance-operator/releases)
-[![License](https://img.shields.io/github/license/k8s-operators-devops/k8s-maintenance-operator)](LICENSE)
+[![Tests](https://github.com/k8s-operators-devops/app-maintenance-operator/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/k8s-operators-devops/app-maintenance-operator/actions/workflows/test.yml)
+[![Lint](https://github.com/k8s-operators-devops/app-maintenance-operator/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/k8s-operators-devops/app-maintenance-operator/actions/workflows/lint.yml)
+[![E2E Tests](https://github.com/k8s-operators-devops/app-maintenance-operator/actions/workflows/test-e2e.yml/badge.svg?branch=main)](https://github.com/k8s-operators-devops/app-maintenance-operator/actions/workflows/test-e2e.yml)
+[![Coverage](https://github.com/k8s-operators-devops/app-maintenance-operator/actions/workflows/coverage.yml/badge.svg?branch=main)](https://github.com/k8s-operators-devops/app-maintenance-operator/actions/workflows/coverage.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/k8s-operators-devops/app-maintenance-operator)](https://goreportcard.com/report/github.com/k8s-operators-devops/app-maintenance-operator)
+[![Latest Release](https://img.shields.io/github/v/release/k8s-operators-devops/app-maintenance-operator?include_prereleases)](https://github.com/k8s-operators-devops/app-maintenance-operator/releases)
+[![License](https://img.shields.io/github/license/k8s-operators-devops/app-maintenance-operator)](LICENSE)
 
-`k8s-maintenance-operator` enables maintenance mode for applications exposed through AWS Load Balancer Controller ALB Ingresses.
+`app-maintenance-operator` gives platform and application teams a controlled way to put ALB-backed Kubernetes applications into maintenance mode without editing the original application Ingress.
+
+It is focused on application traffic maintenance, not node maintenance. The operator creates a temporary, higher-priority ALB IngressGroup overlay that returns an HTTP 503 maintenance response while leaving the business-owned Ingress unchanged.
 
 End users install and operate it with `kubectl` only. Go, Kubebuilder, controller-gen, Kustomize, and Make are maintainer tools, not runtime requirements.
 
@@ -60,7 +62,7 @@ kubectl apply -f deploy/install.yaml
 Install a pinned release:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/k8s-operators-devops/k8s-maintenance-operator/v1.0.0/deploy/install.yaml
+kubectl apply -f https://raw.githubusercontent.com/k8s-operators-devops/app-maintenance-operator/v1.0.0/deploy/install.yaml
 ```
 
 The install manifest includes the namespace, CRD, service account, RBAC, leader election RBAC, metrics service, and manager deployment. No webhook resources are included because this operator does not use webhooks.
@@ -68,13 +70,13 @@ The install manifest includes the namespace, CRD, service account, RBAC, leader 
 The controller image is published to GHCR and pinned in the release manifest:
 
 ```text
-ghcr.io/k8s-operators-devops/k8s-maintenance-operator:v1.0.0
+ghcr.io/k8s-operators-devops/app-maintenance-operator:v1.0.0
 ```
 
 ## Verify
 
 ```bash
-kubectl get pods -n maintenance-operator
+kubectl get pods -n alb-maintenance-operator
 kubectl get crd maintenances.k8smaintenance.io
 kubectl get maintenance -A
 ```
@@ -82,7 +84,7 @@ kubectl get maintenance -A
 For controller logs:
 
 ```bash
-kubectl logs -n maintenance-operator \
+kubectl logs -n alb-maintenance-operator \
   deployment/alb-maintenance \
   -c manager
 ```
@@ -136,7 +138,7 @@ kubectl describe ingress <target-ingress-name> -n <application-namespace>
 Confirm the generated maintenance Ingress:
 
 - is separate from the original application Ingress;
-- has `k8smaintenance.io/managed-by=maintenance-operator`;
+- has `k8smaintenance.io/managed-by=alb-maintenance-operator`;
 - has the same `alb.ingress.kubernetes.io/group.name` as the target Ingress;
 - has `alb.ingress.kubernetes.io/group.order: "-1000"`;
 - uses backend service `maintenance` with port name `use-annotation`;

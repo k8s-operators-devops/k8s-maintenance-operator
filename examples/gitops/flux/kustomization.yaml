@@ -1,18 +1,18 @@
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
 metadata:
-  name: k8s-maintenance-operator
+  name: app-maintenance-operator
   namespace: flux-system
 spec:
   interval: 10m
   ref:
     tag: v1.0.0
-  url: https://github.com/k8s-operators-devops/k8s-maintenance-operator.git
+  url: https://github.com/k8s-operators-devops/app-maintenance-operator.git
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: k8s-maintenance-operator
+  name: app-maintenance-operator
   namespace: flux-system
 spec:
   interval: 10m
@@ -20,5 +20,5 @@ spec:
   prune: true
   sourceRef:
     kind: GitRepository
-    name: k8s-maintenance-operator
-  targetNamespace: maintenance-operator
+    name: app-maintenance-operator
+  targetNamespace: alb-maintenance-operator

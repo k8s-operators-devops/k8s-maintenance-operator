@@ -4,10 +4,10 @@ metadata:
   labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/name: app-maintenance-operator
     app.kubernetes.io/version: v1.0.0
     control-plane: alb-maintenance
-  name: maintenance-operator
+  name: alb-maintenance-operator
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -240,10 +240,10 @@ metadata:
   labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/name: app-maintenance-operator
     app.kubernetes.io/version: v1.0.0
   name: alb-maintenance
-  namespace: maintenance-operator
+  namespace: alb-maintenance-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -251,10 +251,10 @@ metadata:
   labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/name: app-maintenance-operator
     app.kubernetes.io/version: v1.0.0
   name: alb-maintenance-leader-election-role
-  namespace: maintenance-operator
+  namespace: alb-maintenance-operator
 rules:
 - apiGroups:
   - ""
@@ -377,7 +377,7 @@ kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/name: app-maintenance-operator
   name: maintenance-admin-role
 rules:
 - apiGroups:
@@ -398,7 +398,7 @@ kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/name: app-maintenance-operator
   name: maintenance-editor-role
 rules:
 - apiGroups:
@@ -425,7 +425,7 @@ kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/name: app-maintenance-operator
   name: maintenance-viewer-role
 rules:
 - apiGroups:
@@ -449,10 +449,10 @@ metadata:
   labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/name: app-maintenance-operator
     app.kubernetes.io/version: v1.0.0
   name: alb-maintenance-leader-election-rolebinding
-  namespace: maintenance-operator
+  namespace: alb-maintenance-operator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -460,7 +460,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: alb-maintenance
-  namespace: maintenance-operator
+  namespace: alb-maintenance-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -468,7 +468,7 @@ metadata:
   labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/name: app-maintenance-operator
     app.kubernetes.io/version: v1.0.0
   name: alb-maintenance-manager-rolebinding
 roleRef:
@@ -478,7 +478,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: alb-maintenance
-  namespace: maintenance-operator
+  namespace: alb-maintenance-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -491,7 +491,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: alb-maintenance
-  namespace: maintenance-operator
+  namespace: alb-maintenance-operator
 ---
 apiVersion: v1
 kind: Service
@@ -499,11 +499,11 @@ metadata:
   labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/name: app-maintenance-operator
     app.kubernetes.io/version: v1.0.0
     control-plane: alb-maintenance
   name: alb-maintenance-metrics
-  namespace: maintenance-operator
+  namespace: alb-maintenance-operator
 spec:
   ports:
   - name: https
@@ -511,7 +511,7 @@ spec:
     protocol: TCP
     targetPort: 8443
   selector:
-    app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/name: app-maintenance-operator
     control-plane: alb-maintenance
 ---
 apiVersion: apps/v1
@@ -520,16 +520,16 @@ metadata:
   labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/name: app-maintenance-operator
     app.kubernetes.io/version: v1.0.0
     control-plane: alb-maintenance
   name: alb-maintenance
-  namespace: maintenance-operator
+  namespace: alb-maintenance-operator
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: k8s-maintenance-operator
+      app.kubernetes.io/name: app-maintenance-operator
       control-plane: alb-maintenance
   template:
     metadata:
@@ -537,7 +537,7 @@ spec:
         kubectl.kubernetes.io/default-container: manager
       labels:
         app.kubernetes.io/component: controller
-        app.kubernetes.io/name: k8s-maintenance-operator
+        app.kubernetes.io/name: app-maintenance-operator
         app.kubernetes.io/version: v1.0.0
         control-plane: alb-maintenance
     spec:
@@ -551,7 +551,7 @@ spec:
         env:
         - name: OPERATOR_VERSION
           value: v1.0.0
-        image: ghcr.io/k8s-operators-devops/k8s-maintenance-operator:v1.0.0
+        image: ghcr.io/k8s-operators-devops/app-maintenance-operator:v1.0.0
         livenessProbe:
           httpGet:
             path: /healthz

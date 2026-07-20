@@ -1,5 +1,5 @@
 # Image URL to use all building/pushing image targets
-IMG ?= ghcr.io/k8s-operators-devops/k8s-maintenance-operator:latest
+IMG ?= ghcr.io/k8s-operators-devops/app-maintenance-operator:latest
 # YEAR defines the year value used for substituting the YEAR placeholder in the boilerplate header.
 ifeq ($(OS),Windows_NT)
 YEAR ?= $(shell powershell -NoProfile -Command "(Get-Date).Year")
@@ -83,7 +83,7 @@ endif
 # - KUBECTL_KUBERC=true
 # CertManager is installed by default; skip with:
 # - CERT_MANAGER_INSTALL_SKIP=true
-KIND_CLUSTER ?= k8s-maintenance-operator-test-e2e
+KIND_CLUSTER ?= app-maintenance-operator-test-e2e
 
 .PHONY: setup-test-e2e
 setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
@@ -165,10 +165,10 @@ PLATFORMS ?= linux/arm64,linux/amd64,linux/s390x,linux/ppc64le
 docker-buildx: ## Build and push docker image for the manager for cross-platform support
 	# copy existing Dockerfile and insert --platform=${BUILDPLATFORM} into Dockerfile.cross, and preserve the original Dockerfile
 	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
-	- $(CONTAINER_TOOL) buildx create --name k8s-maintenance-operator-builder
-	$(CONTAINER_TOOL) buildx use k8s-maintenance-operator-builder
+	- $(CONTAINER_TOOL) buildx create --name app-maintenance-operator-builder
+	$(CONTAINER_TOOL) buildx use app-maintenance-operator-builder
 	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --tag ${IMG} -f Dockerfile.cross .
-	- $(CONTAINER_TOOL) buildx rm k8s-maintenance-operator-builder
+	- $(CONTAINER_TOOL) buildx rm app-maintenance-operator-builder
 	rm Dockerfile.cross
 
 .PHONY: build-installer

@@ -6,8 +6,8 @@ cliVersion: 4.15.0
 domain: io
 layout:
 - go.kubebuilder.io/v4
-projectName: k8s-maintenance-operator
-repo: github.com/k8s-operators-devops/k8s-maintenance-operator
+projectName: app-maintenance-operator
+repo: github.com/k8s-operators-devops/app-maintenance-operator
 resources:
 - api:
     crdVersion: v1
@@ -16,6 +16,6 @@ resources:
   domain: io
   group: k8smaintenance
   kind: Maintenance
-  path: github.com/k8s-operators-devops/k8s-maintenance-operator/api/v1alpha1
+  path: github.com/k8s-operators-devops/app-maintenance-operator/api/v1alpha1
   version: v1alpha1
 version: "3"

@@ -3,20 +3,20 @@ kind: Namespace
 metadata:
   labels:
     control-plane: alb-maintenance
-    app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/name: app-maintenance-operator
     app.kubernetes.io/component: controller
     app.kubernetes.io/version: v1.0.0
     app.kubernetes.io/managed-by: kustomize
-  name: maintenance-operator
+  name: alb-maintenance-operator
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: alb-maintenance
-  namespace: maintenance-operator
+  namespace: alb-maintenance-operator
   labels:
     control-plane: alb-maintenance
-    app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/name: app-maintenance-operator
     app.kubernetes.io/component: controller
     app.kubernetes.io/version: v1.0.0
     app.kubernetes.io/managed-by: kustomize
@@ -24,7 +24,7 @@ spec:
   selector:
     matchLabels:
       control-plane: alb-maintenance
-      app.kubernetes.io/name: k8s-maintenance-operator
+      app.kubernetes.io/name: app-maintenance-operator
   replicas: 1
   template:
     metadata:
@@ -32,7 +32,7 @@ spec:
         kubectl.kubernetes.io/default-container: manager
       labels:
         control-plane: alb-maintenance
-        app.kubernetes.io/name: k8s-maintenance-operator
+        app.kubernetes.io/name: app-maintenance-operator
         app.kubernetes.io/component: controller
         app.kubernetes.io/version: v1.0.0
     spec:

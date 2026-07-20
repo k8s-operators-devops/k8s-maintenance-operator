@@ -35,8 +35,8 @@ From a workstation, CI runner, or bastion with cluster access:
 
 ```sh
 kubectl apply -f deploy/install.yaml
-kubectl get pods -n maintenance-operator
-kubectl logs -n maintenance-operator \
+kubectl get pods -n alb-maintenance-operator
+kubectl logs -n alb-maintenance-operator \
   deployment/alb-maintenance \
   -c manager
 ```
@@ -132,7 +132,7 @@ The controller is expected to delete the generated maintenance Ingress first, wa
 ## Controller Logs
 
 ```sh
-kubectl logs -n maintenance-operator \
+kubectl logs -n alb-maintenance-operator \
   deployment/alb-maintenance \
   -c manager
 ```

@@ -4,12 +4,12 @@ kind: ServiceMonitor
 metadata:
   labels:
     control-plane: alb-maintenance
-    app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/name: app-maintenance-operator
     app.kubernetes.io/component: controller
     app.kubernetes.io/version: v1.0.0
     app.kubernetes.io/managed-by: kustomize
   name: alb-maintenance-metrics
-  namespace: maintenance-operator
+  namespace: alb-maintenance-operator
 spec:
   endpoints:
     - path: /metrics
@@ -26,4 +26,4 @@ spec:
   selector:
     matchLabels:
       control-plane: alb-maintenance
-      app.kubernetes.io/name: k8s-maintenance-operator
+      app.kubernetes.io/name: app-maintenance-operator

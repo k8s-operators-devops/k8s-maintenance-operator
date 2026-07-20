@@ -11,7 +11,7 @@ The obvious approaches all have teeth:
 
 That is too much ceremony for a high-pressure workflow.
 
-`k8s-maintenance-operator` takes a different path. It leaves the application Ingress alone and creates a temporary overlay Ingress in the same ALB IngressGroup. The overlay has a lower `alb.ingress.kubernetes.io/group.order`, so AWS Load Balancer Controller gives it precedence and returns a fixed 503 maintenance response.
+`app-maintenance-operator` takes a different path. It leaves the application Ingress alone and creates a temporary overlay Ingress in the same ALB IngressGroup. The overlay has a lower `alb.ingress.kubernetes.io/group.order`, so AWS Load Balancer Controller gives it precedence and returns a fixed 503 maintenance response.
 
 ```mermaid
 flowchart LR

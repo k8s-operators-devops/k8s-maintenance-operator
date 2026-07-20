@@ -35,8 +35,8 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	k8smaintenancev1alpha1 "github.com/k8s-operators-devops/k8s-maintenance-operator/api/v1alpha1"
-	"github.com/k8s-operators-devops/k8s-maintenance-operator/internal/controller"
+	k8smaintenancev1alpha1 "github.com/k8s-operators-devops/app-maintenance-operator/api/v1alpha1"
+	"github.com/k8s-operators-devops/app-maintenance-operator/internal/controller"
 	// +kubebuilder:scaffold:imports
 )
 

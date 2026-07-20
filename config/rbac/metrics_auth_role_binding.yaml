@@ -9,4 +9,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: alb-maintenance
-  namespace: maintenance-operator
+  namespace: alb-maintenance-operator

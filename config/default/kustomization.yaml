@@ -1,5 +1,5 @@
 # Adds namespace to all resources.
-namespace: maintenance-operator
+namespace: alb-maintenance-operator
 
 # Value of this field is prepended to the
 # names of all resources, e.g. a deployment named
@@ -11,7 +11,7 @@ namespace: maintenance-operator
 
 images:
 - name: controller
-  newName: ghcr.io/k8s-operators-devops/k8s-maintenance-operator
+  newName: ghcr.io/k8s-operators-devops/app-maintenance-operator
   newTag: v1.0.0
 
 # Labels to add to all resources and selectors.

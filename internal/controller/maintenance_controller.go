@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	k8smaintenancev1alpha1 "github.com/k8s-operators-devops/k8s-maintenance-operator/api/v1alpha1"
+	k8smaintenancev1alpha1 "github.com/k8s-operators-devops/app-maintenance-operator/api/v1alpha1"
 )
 
 const (
@@ -49,7 +49,7 @@ const (
 	targetIngressIndex       = ".spec.targetIngress"
 
 	managedByLabelKey   = "k8smaintenance.io/managed-by"
-	managedByLabelValue = "maintenance-operator"
+	managedByLabelValue = "alb-maintenance-operator"
 
 	albGroupNameAnnotation  = "alb.ingress.kubernetes.io/group.name"
 	albGroupOrderAnnotation = "alb.ingress.kubernetes.io/group.order"

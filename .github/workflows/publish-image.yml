@@ -16,7 +16,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE_NAME: ghcr.io/k8s-operators-devops/k8s-maintenance-operator
+  IMAGE_NAME: ghcr.io/k8s-operators-devops/app-maintenance-operator
 
 jobs:
   publish:
@@ -69,8 +69,8 @@ jobs:
             type=raw,value=${{ steps.version.outputs.version }}
             type=raw,value=latest,enable=${{ !contains(steps.version.outputs.version, '-') }}
           labels: |
-            org.opencontainers.image.title=k8s-maintenance-operator
-            org.opencontainers.image.description=Kubernetes operator for AWS ALB maintenance mode overlays
+            org.opencontainers.image.title=app-maintenance-operator
+            org.opencontainers.image.description=Kubernetes operator for application maintenance mode overlays on AWS ALB IngressGroups
 
       - name: Build and push image
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0

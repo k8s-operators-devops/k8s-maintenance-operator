@@ -9,13 +9,13 @@ if ([string]::IsNullOrWhiteSpace($Version) -or $Version -notmatch '^v\d+\.\d+\.\
 }
 
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-$image = "ghcr.io/k8s-operators-devops/k8s-maintenance-operator"
+$image = "ghcr.io/k8s-operators-devops/app-maintenance-operator"
 
 $updates = @(
     @{
         Path = "README.md"
         Patterns = @(
-            @{ From = 'k8s-maintenance-operator/v\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?/deploy/install\.yaml'; To = "k8s-maintenance-operator/$Version/deploy/install.yaml" },
+            @{ From = 'app-maintenance-operator/v\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?/deploy/install\.yaml'; To = "app-maintenance-operator/$Version/deploy/install.yaml" },
             @{ From = [regex]::Escape($image) + ':v\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?'; To = "$image`:$Version" }
         )
     },
