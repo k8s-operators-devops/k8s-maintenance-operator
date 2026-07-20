@@ -135,6 +135,10 @@ bundle: manifests kustomize ## Generate the end-user installation manifest.
 	$(call mkdir-if-needed,deploy)
 	$(KUSTOMIZE) build config/default > deploy/install.yaml
 
+.PHONY: bump-release
+bump-release: ## Update pinned release references. Usage: make bump-release VERSION=v0.1.3
+	$(POWERSHELL) -NoProfile -ExecutionPolicy Bypass -File hack/bump-release.ps1 -Version "$(VERSION)"
+
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./cmd/main.go
@@ -223,12 +227,14 @@ CONTROLLER_GEN ?= $(if $(wildcard $(LOCALBIN)/controller-gen.exe),$(LOCALBIN)/co
 ENVTEST ?= $(if $(wildcard $(LOCALBIN)/setup-envtest.exe),$(LOCALBIN)/setup-envtest.exe,go run sigs.k8s.io/controller-runtime/tools/setup-envtest@$(ENVTEST_VERSION))
 GOLANGCI_LINT_BUILDER ?= $(if $(wildcard $(LOCALBIN)/golangci-lint.exe),$(LOCALBIN)/golangci-lint.exe,go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION))
 GOLANGCI_LINT ?= $(LOCALBIN)/custom-gcl.exe
+POWERSHELL ?= powershell
 else
 KUSTOMIZE ?= $(if $(wildcard $(LOCALBIN)/kustomize),$(LOCALBIN)/kustomize,go run sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION))
 CONTROLLER_GEN ?= $(if $(wildcard $(LOCALBIN)/controller-gen),$(LOCALBIN)/controller-gen,go run sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION))
 ENVTEST ?= $(if $(wildcard $(LOCALBIN)/setup-envtest),$(LOCALBIN)/setup-envtest,go run sigs.k8s.io/controller-runtime/tools/setup-envtest@$(ENVTEST_VERSION))
 GOLANGCI_LINT_BUILDER ?= $(if $(wildcard $(LOCALBIN)/golangci-lint),$(LOCALBIN)/golangci-lint,go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION))
 GOLANGCI_LINT ?= $(LOCALBIN)/custom-gcl
+POWERSHELL ?= pwsh
 endif
 
 ## Tool Versions

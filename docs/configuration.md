@@ -6,6 +6,8 @@
 
 Required. Name of the target Ingress in the same namespace as the `Maintenance` resource.
 
+The operator uses this field to find the target Ingress. Metadata labels on the `Maintenance` resource do not select the target Ingress.
+
 `spec.enabled`
 
 Optional boolean. When `true`, the operator creates or reconciles the generated maintenance Ingress. When `false` or omitted, the operator removes generated maintenance resources.
@@ -68,8 +70,8 @@ kubectl apply -f samples/maintenance-disable.yaml
 Patch an existing resource:
 
 ```sh
-kubectl patch maintenance application-maintenance \
-  -n default \
+kubectl patch maintenance <maintenance-name> \
+  -n <application-namespace> \
   --type merge \
   -p '{"spec":{"enabled":false}}'
 ```

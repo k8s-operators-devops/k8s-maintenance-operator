@@ -1,10 +1,10 @@
 apiVersion: k8smaintenance.io/v1alpha1
 kind: Maintenance
 metadata:
-  name: application-maintenance
-  namespace: default
+  name: <maintenance-name>
+  namespace: <application-namespace>
 spec:
-  targetIngress: application-alb-ingress
+  targetIngress: <target-ingress-name>
   enabled: false
   response:
     backend: fixed-response

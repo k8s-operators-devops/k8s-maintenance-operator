@@ -43,14 +43,14 @@ kubectl logs -n k8s-maintenance-operator-system \
 
 ## Enable Maintenance
 
-Update `samples/maintenance-enable.yaml` so `metadata.namespace` and `spec.targetIngress` match a non-production ALB Ingress.
+Update `samples/maintenance-enable.yaml` so `<maintenance-name>`, `<application-namespace>`, and `<target-ingress-name>` match a non-production ALB Ingress.
 
 ```sh
 kubectl apply -f samples/maintenance-enable.yaml
-kubectl get maintenance -n default
-kubectl describe maintenance application-maintenance -n default
-kubectl get ingress -n default
-kubectl get configmap -n default
+kubectl get maintenance -n <application-namespace>
+kubectl describe maintenance <maintenance-name> -n <application-namespace>
+kubectl get ingress -n <application-namespace>
+kubectl get configmap -n <application-namespace>
 ```
 
 Confirm the generated maintenance Ingress:
@@ -76,8 +76,8 @@ content-type: text/html
 ## Disable Maintenance
 
 ```sh
-kubectl patch maintenance application-maintenance \
-  -n default \
+kubectl patch maintenance <maintenance-name> \
+  -n <application-namespace> \
   --type merge \
   -p '{"spec":{"enabled":false}}'
 ```
@@ -85,9 +85,9 @@ kubectl patch maintenance application-maintenance \
 Verify cleanup:
 
 ```sh
-kubectl get ingress -n default
-kubectl get configmap -n default
-kubectl describe maintenance application-maintenance -n default
+kubectl get ingress -n <application-namespace>
+kubectl get configmap -n <application-namespace>
+kubectl describe maintenance <maintenance-name> -n <application-namespace>
 ```
 
 The generated maintenance Ingress and backup ConfigMap should be gone. The application Ingress should remain unchanged.
@@ -97,15 +97,15 @@ The generated maintenance Ingress and backup ConfigMap should be gone. The appli
 Delete the `Maintenance` resource:
 
 ```sh
-kubectl delete maintenance application-maintenance -n default
+kubectl delete maintenance <maintenance-name> -n <application-namespace>
 ```
 
 If deletion appears delayed, inspect:
 
 ```sh
-kubectl get maintenance application-maintenance -n default -o yaml
-kubectl get ingress -n default
-kubectl get configmap -n default
+kubectl get maintenance <maintenance-name> -n <application-namespace> -o yaml
+kubectl get ingress -n <application-namespace>
+kubectl get configmap -n <application-namespace>
 ```
 
 The controller is expected to delete the generated maintenance Ingress first, wait until it is gone, delete the backup ConfigMap, and then remove the finalizer.

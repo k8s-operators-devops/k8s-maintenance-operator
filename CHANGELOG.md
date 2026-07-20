@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 The format follows Keep a Changelog, and this project uses semantic versioning while the API is pre-1.0.
 
+## [Unreleased]
+
+### Added
+
+- Release bump helper for pinned README, manifest, workflow, GitOps, and issue-template references.
+- Placeholder-based Maintenance examples for namespace, target Ingress, and resource name.
+
 ## [v0.1.2] - 2026-07-20
 
 ### Fixed

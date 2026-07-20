@@ -31,7 +31,7 @@ Start in a non-production namespace first. IngressGroup is powerful: any user wh
 Verify the target Ingress group before enabling maintenance:
 
 ```bash
-kubectl get ingress application-alb-ingress -n default \
+kubectl get ingress <target-ingress-name> -n <application-namespace> \
   -o jsonpath='{.metadata.annotations.alb\.ingress\.kubernetes\.io/group\.name}'
 ```
 
@@ -81,7 +81,11 @@ kubectl logs -n k8s-maintenance-operator-system \
 
 ## Enable Maintenance
 
-Edit `samples/maintenance-enable.yaml` so `metadata.namespace` and `spec.targetIngress` match your non-production target Ingress first.
+Edit `samples/maintenance-enable.yaml` before applying it:
+
+- replace `<maintenance-name>` with the name for the `Maintenance` resource;
+- replace `<application-namespace>` with the namespace that contains the target Ingress;
+- replace `<target-ingress-name>` with the existing ALB Ingress name.
 
 ```bash
 kubectl apply -f samples/maintenance-enable.yaml
@@ -93,10 +97,10 @@ Example:
 apiVersion: k8smaintenance.io/v1alpha1
 kind: Maintenance
 metadata:
-  name: application-maintenance
-  namespace: default
+  name: <maintenance-name>
+  namespace: <application-namespace>
 spec:
-  targetIngress: application-alb-ingress
+  targetIngress: <target-ingress-name>
   enabled: true
   response:
     backend: fixed-response
@@ -106,13 +110,13 @@ spec:
 ## Check Status
 
 ```bash
-kubectl get maintenance -n default
+kubectl get maintenance -n <application-namespace>
 
-kubectl describe maintenance application-maintenance -n default
+kubectl describe maintenance <maintenance-name> -n <application-namespace>
 
-kubectl get ingress -n default
+kubectl get ingress -n <application-namespace>
 
-kubectl get configmap -n default
+kubectl get configmap -n <application-namespace>
 ```
 
 Confirm the generated maintenance Ingress:
@@ -147,8 +151,8 @@ kubectl apply -f samples/maintenance-disable.yaml
 Or patch the existing resource:
 
 ```bash
-kubectl patch maintenance application-maintenance \
-  -n default \
+kubectl patch maintenance <maintenance-name> \
+  -n <application-namespace> \
   --type merge \
   -p '{"spec":{"enabled":false}}'
 ```
@@ -189,6 +193,14 @@ make bundle
 ```
 
 Release images are published by GitHub Actions to GHCR when a `v*` tag is pushed, or manually through the image publish workflow.
+
+Before cutting a release tag, update pinned release references in one shot:
+
+```bash
+make bump-release VERSION=v0.1.3
+```
+
+Review `CHANGELOG.md`, commit the generated changes, then create the immutable tag.
 
 Documentation:
 
