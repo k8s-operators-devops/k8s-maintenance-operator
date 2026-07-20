@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 The format follows Keep a Changelog, and this project uses semantic versioning while the API is pre-1.0.
 
+## [v0.1.1] - 2026-07-20
+
+### Fixed
+
+- Published release images to GHCR with immutable version tags and a `latest` convenience tag.
+- Pinned the install manifest to the immutable release image tag.
+
 ## [v0.1.0] - 2026-07-20
 
 ### Added
@@ -22,4 +29,3 @@ The format follows Keep a Changelog, and this project uses semantic versioning w
 - Maintenance HTML is limited to 1024 bytes by ALB fixed-response constraints.
 - Target Ingress and `Maintenance` resource must be in the same namespace.
 - Central platform-team control across namespaces is planned but not implemented.
-
