@@ -22,11 +22,18 @@ The operator never mutates the original application Ingress during normal enable
 - The target Ingress must use one of:
   - `spec.ingressClassName: alb`
   - `kubernetes.io/ingress.class: alb`
-- The target Ingress must define `alb.ingress.kubernetes.io/group.name`.
+- The existing target Ingress must already define an ALB IngressGroup ID/name with `alb.ingress.kubernetes.io/group.name`.
 - `kubectl` access to the target cluster.
 - A `kubectl` client that is within one minor version of the cluster control plane.
 
 Start in a non-production namespace first. IngressGroup is powerful: any user who can create or update Ingresses in the same ALB IngressGroup can affect routing for that group.
+
+Verify the target Ingress group before enabling maintenance:
+
+```bash
+kubectl get ingress application-alb-ingress -n default \
+  -o jsonpath='{.metadata.annotations.alb\.ingress\.kubernetes\.io/group\.name}'
+```
 
 ## Installation
 

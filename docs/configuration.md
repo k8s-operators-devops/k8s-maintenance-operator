@@ -44,10 +44,12 @@ The target Ingress must:
 
 - exist in the same namespace as the `Maintenance` resource;
 - be ALB-managed through `spec.ingressClassName: alb` or `kubernetes.io/ingress.class: alb`;
-- define `alb.ingress.kubernetes.io/group.name`;
+- define the ALB IngressGroup ID/name with `alb.ingress.kubernetes.io/group.name`;
 - contain at least one HTTP path or a valid default backend.
 
 The operator copies ALB-level annotations that are relevant to the load balancer and removes annotations that conflict with fixed-response behavior.
+
+The group name is mandatory because the operator creates a separate maintenance Ingress that joins the same ALB IngressGroup as the existing application Ingress. If the target Ingress is not grouped, the controller reports `InvalidConfiguration` and does not create the maintenance overlay.
 
 ## Examples
 
