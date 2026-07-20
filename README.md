@@ -52,7 +52,7 @@ kubectl apply -f deploy/install.yaml
 Install a pinned release:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/k8s-operators-devops/k8s-maintenance-operator/v0.1.1/deploy/install.yaml
+kubectl apply -f https://raw.githubusercontent.com/k8s-operators-devops/k8s-maintenance-operator/v0.1.2/deploy/install.yaml
 ```
 
 The install manifest includes the namespace, CRD, service account, RBAC, leader election RBAC, metrics service, and manager deployment. No webhook resources are included because this operator does not use webhooks.
@@ -60,7 +60,7 @@ The install manifest includes the namespace, CRD, service account, RBAC, leader 
 The controller image is published to GHCR and pinned in the release manifest:
 
 ```text
-ghcr.io/k8s-operators-devops/k8s-maintenance-operator:v0.1.1
+ghcr.io/k8s-operators-devops/k8s-maintenance-operator:v0.1.2
 ```
 
 ## Verify

@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 The format follows Keep a Changelog, and this project uses semantic versioning while the API is pre-1.0.
 
+## [v0.1.2] - 2026-07-20
+
+### Fixed
+
+- Added QEMU setup and a bounded timeout to the multi-architecture GHCR image publishing workflow.
+- Clarified the ALB IngressGroup ID/name prerequisite for existing target Ingresses.
+
 ## [v0.1.1] - 2026-07-20
 
 ### Fixed
