@@ -35,9 +35,9 @@ From a workstation, CI runner, or bastion with cluster access:
 
 ```sh
 kubectl apply -f deploy/install.yaml
-kubectl get pods -n k8s-maintenance-operator-system
-kubectl logs -n k8s-maintenance-operator-system \
-  deployment/k8s-maintenance-operator-controller-manager \
+kubectl get pods -n maintenance-operator
+kubectl logs -n maintenance-operator \
+  deployment/alb-maintenance \
   -c manager
 ```
 
@@ -87,7 +87,7 @@ content-type: text/html
 kubectl patch maintenance <maintenance-name> \
   -n <application-namespace> \
   --type merge \
-  -p '{"spec":{"enabled":false}}'
+  -p '{"spec":{"maintenanceMode":false}}'
 ```
 
 Verify cleanup:
@@ -102,7 +102,7 @@ The generated maintenance Ingress and backup ConfigMap should be gone. The appli
 
 ## Schedule Maintenance
 
-Update `samples/maintenance-scheduled.yaml` so `<maintenance-name>`, `<application-namespace>`, `<target-ingress-name>`, `spec.schedule.start`, and `spec.schedule.end` match a non-production ALB Ingress and maintenance window. Use `Z` for UTC or an explicit RFC3339 offset such as `-04:00` or `+05:30` for the timezone your change window uses.
+Update `samples/maintenance-scheduled.yaml` so `<maintenance-name>`, `<application-namespace>`, `<target-ingress-name>`, `spec.maintenanceMode`, `spec.schedule.start`, and `spec.schedule.end` match a non-production ALB Ingress and maintenance window. Use `Z` for UTC or an explicit RFC3339 offset such as `-04:00` or `+05:30` for the timezone your change window uses.
 
 ```sh
 kubectl apply -f samples/maintenance-scheduled.yaml
@@ -132,8 +132,8 @@ The controller is expected to delete the generated maintenance Ingress first, wa
 ## Controller Logs
 
 ```sh
-kubectl logs -n k8s-maintenance-operator-system \
-  deployment/k8s-maintenance-operator-controller-manager \
+kubectl logs -n maintenance-operator \
+  deployment/alb-maintenance \
   -c manager
 ```
 

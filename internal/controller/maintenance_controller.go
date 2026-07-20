@@ -153,16 +153,12 @@ type scheduleDecision struct {
 }
 
 func evaluateSchedule(maintenance *k8smaintenancev1alpha1.Maintenance, now time.Time) scheduleDecision {
-	if maintenance.Spec.Schedule == nil {
-		enabled := false
-		if maintenance.Spec.Enabled != nil {
-			enabled = *maintenance.Spec.Enabled
-		}
-		return scheduleDecision{enabled: enabled}
+	if maintenance.Spec.MaintenanceMode == nil || !*maintenance.Spec.MaintenanceMode {
+		return scheduleDecision{enabled: false}
 	}
 
-	if maintenance.Spec.Enabled != nil && !*maintenance.Spec.Enabled {
-		return scheduleDecision{enabled: false}
+	if maintenance.Spec.Schedule == nil {
+		return scheduleDecision{enabled: true}
 	}
 
 	schedule := maintenance.Spec.Schedule

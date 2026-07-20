@@ -4,8 +4,10 @@ kind: Role
 metadata:
   labels:
     app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/version: v1.0.0
     app.kubernetes.io/managed-by: kustomize
-  name: leader-election-role
+  name: alb-maintenance-leader-election-role
 rules:
 - apiGroups:
   - ""

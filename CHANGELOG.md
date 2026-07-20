@@ -2,13 +2,23 @@
 
 All notable changes to this project are documented here.
 
-The format follows Keep a Changelog, and this project uses semantic versioning while the API is pre-1.0.
+The format follows Keep a Changelog, and this project uses semantic versioning.
 
 ## [Unreleased]
 
 ### Added
 
 - Timezone and ALB IngressGroup verification guidance for scheduled maintenance.
+
+## [v1.0.0] - 2026-07-20
+
+### Changed
+
+- Renamed the public API switch from `spec.enabled` to `spec.maintenanceMode`.
+- Made `spec.maintenanceMode` the master switch. When it is false or omitted, schedules are ignored and maintenance stays disabled.
+- Renamed the default operator namespace to `maintenance-operator`.
+- Renamed the default ALB controller Deployment and ServiceAccount to `alb-maintenance`.
+- Added `app.kubernetes.io/version: v1.0.0` labels and `OPERATOR_VERSION=v1.0.0` to the operator pod template.
 
 ## [v0.1.3] - 2026-07-20
 

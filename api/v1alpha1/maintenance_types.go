@@ -28,11 +28,12 @@ type MaintenanceSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	TargetIngress string `json:"targetIngress"`
 
-	// Enable or disable maintenance mode.
-	// When Schedule is set, nil or true allows the schedule to control
-	// maintenance mode and false acts as a manual override.
+	// MaintenanceMode is the master switch for maintenance behavior.
+	// When false or omitted, maintenance is disabled and Schedule is ignored.
+	// When true, maintenance starts immediately unless Schedule narrows the
+	// active window.
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	MaintenanceMode *bool `json:"maintenanceMode,omitempty"`
 
 	// Maintenance response configuration.
 	// +optional
@@ -46,8 +47,8 @@ type MaintenanceSpec struct {
 	Priority int `json:"priority,omitempty"`
 
 	// Optional maintenance schedule.
-	// When set, maintenance is enabled inside the start/end window
-	// and disabled outside it unless Enabled is explicitly false.
+	// When set with MaintenanceMode=true, maintenance is enabled inside the
+	// start/end window and disabled outside it.
 	// +optional
 	Schedule *MaintenanceSchedule `json:"schedule,omitempty"`
 }
@@ -151,7 +152,7 @@ type MaintenanceStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Ingress",type=string,JSONPath=`.spec.targetIngress`
-// +kubebuilder:printcolumn:name="Enabled",type=boolean,JSONPath=`.spec.enabled`
+// +kubebuilder:printcolumn:name="Mode",type=boolean,JSONPath=`.spec.maintenanceMode`
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 

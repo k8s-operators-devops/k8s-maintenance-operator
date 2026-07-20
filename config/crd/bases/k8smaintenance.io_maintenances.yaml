@@ -18,8 +18,8 @@ spec:
     - jsonPath: .spec.targetIngress
       name: Ingress
       type: string
-    - jsonPath: .spec.enabled
-      name: Enabled
+    - jsonPath: .spec.maintenanceMode
+      name: Mode
       type: boolean
     - jsonPath: .status.phase
       name: Phase
@@ -52,11 +52,12 @@ spec:
           spec:
             description: Desired state.
             properties:
-              enabled:
+              maintenanceMode:
                 description: |-
-                  Enable or disable maintenance mode.
-                  When Schedule is set, nil or true allows the schedule to control
-                  maintenance mode and false acts as a manual override.
+                  MaintenanceMode is the master switch for maintenance behavior.
+                  When false or omitted, maintenance is disabled and Schedule is ignored.
+                  When true, maintenance starts immediately unless Schedule narrows the
+                  active window.
                 type: boolean
               priority:
                 default: 0
@@ -102,8 +103,8 @@ spec:
               schedule:
                 description: |-
                   Optional maintenance schedule.
-                  When set, maintenance is enabled inside the start/end window
-                  and disabled outside it unless Enabled is explicitly false.
+                  When set with MaintenanceMode=true, maintenance is enabled inside the
+                  start/end window and disabled outside it.
                 properties:
                   end:
                     description: Maintenance end time (RFC3339).

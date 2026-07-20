@@ -3,11 +3,13 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   labels:
-    control-plane: controller-manager
+    control-plane: alb-maintenance
     app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/version: v1.0.0
     app.kubernetes.io/managed-by: kustomize
-  name: controller-manager-metrics-monitor
-  namespace: system
+  name: alb-maintenance-metrics
+  namespace: maintenance-operator
 spec:
   endpoints:
     - path: /metrics
@@ -23,5 +25,5 @@ spec:
         insecureSkipVerify: true
   selector:
     matchLabels:
-      control-plane: controller-manager
+      control-plane: alb-maintenance
       app.kubernetes.io/name: k8s-maintenance-operator

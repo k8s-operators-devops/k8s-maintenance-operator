@@ -5,7 +5,7 @@ metadata:
   namespace: <application-namespace>
 spec:
   targetIngress: <target-ingress-name>
-  enabled: true
+  maintenanceMode: true
   response:
     backend: fixed-response
     html: "<html><body><h1>Scheduled Maintenance</h1></body></html>"

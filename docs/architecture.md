@@ -17,7 +17,7 @@ The operator gives the ALB a higher-priority maintenance rule without rewriting 
 
 ## Maintenance Custom Resource
 
-The `Maintenance` custom resource is the operator API for enabling or disabling maintenance mode for one application Ingress. A resource names a target Ingress through `spec.targetIngress` and controls behavior through `spec.enabled`.
+The `Maintenance` custom resource is the operator API for enabling or disabling maintenance mode for one application Ingress. A resource names a target Ingress through `spec.targetIngress` and controls behavior through `spec.maintenanceMode`.
 
 The target Ingress must already be managed by AWS Load Balancer Controller and must belong to an ALB IngressGroup.
 

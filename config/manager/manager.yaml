@@ -2,24 +2,28 @@ apiVersion: v1
 kind: Namespace
 metadata:
   labels:
-    control-plane: controller-manager
+    control-plane: alb-maintenance
     app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/version: v1.0.0
     app.kubernetes.io/managed-by: kustomize
-  name: system
+  name: maintenance-operator
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: controller-manager
-  namespace: system
+  name: alb-maintenance
+  namespace: maintenance-operator
   labels:
-    control-plane: controller-manager
+    control-plane: alb-maintenance
     app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/version: v1.0.0
     app.kubernetes.io/managed-by: kustomize
 spec:
   selector:
     matchLabels:
-      control-plane: controller-manager
+      control-plane: alb-maintenance
       app.kubernetes.io/name: k8s-maintenance-operator
   replicas: 1
   template:
@@ -27,8 +31,10 @@ spec:
       annotations:
         kubectl.kubernetes.io/default-container: manager
       labels:
-        control-plane: controller-manager
+        control-plane: alb-maintenance
         app.kubernetes.io/name: k8s-maintenance-operator
+        app.kubernetes.io/component: controller
+        app.kubernetes.io/version: v1.0.0
     spec:
       # TODO(user): Uncomment the following code to configure the nodeAffinity expression
       # according to the platforms which are supported by your solution.
@@ -65,6 +71,9 @@ spec:
           - --health-probe-bind-address=:8081
         image: controller:latest
         name: manager
+        env:
+        - name: OPERATOR_VERSION
+          value: v1.0.0
         ports:
         - containerPort: 8081
           name: health
@@ -98,5 +107,5 @@ spec:
             memory: 64Mi
         volumeMounts: []
       volumes: []
-      serviceAccountName: controller-manager
+      serviceAccountName: alb-maintenance
       terminationGracePeriodSeconds: 10

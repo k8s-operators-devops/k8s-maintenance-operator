@@ -60,7 +60,7 @@ kubectl apply -f deploy/install.yaml
 Install a pinned release:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/k8s-operators-devops/k8s-maintenance-operator/v0.1.3/deploy/install.yaml
+kubectl apply -f https://raw.githubusercontent.com/k8s-operators-devops/k8s-maintenance-operator/v1.0.0/deploy/install.yaml
 ```
 
 The install manifest includes the namespace, CRD, service account, RBAC, leader election RBAC, metrics service, and manager deployment. No webhook resources are included because this operator does not use webhooks.
@@ -68,13 +68,13 @@ The install manifest includes the namespace, CRD, service account, RBAC, leader 
 The controller image is published to GHCR and pinned in the release manifest:
 
 ```text
-ghcr.io/k8s-operators-devops/k8s-maintenance-operator:v0.1.3
+ghcr.io/k8s-operators-devops/k8s-maintenance-operator:v1.0.0
 ```
 
 ## Verify
 
 ```bash
-kubectl get pods -n k8s-maintenance-operator-system
+kubectl get pods -n maintenance-operator
 kubectl get crd maintenances.k8smaintenance.io
 kubectl get maintenance -A
 ```
@@ -82,8 +82,8 @@ kubectl get maintenance -A
 For controller logs:
 
 ```bash
-kubectl logs -n k8s-maintenance-operator-system \
-  deployment/k8s-maintenance-operator-controller-manager \
+kubectl logs -n maintenance-operator \
+  deployment/alb-maintenance \
   -c manager
 ```
 
@@ -109,7 +109,7 @@ metadata:
   namespace: <application-namespace>
 spec:
   targetIngress: <target-ingress-name>
-  enabled: true
+  maintenanceMode: true
   response:
     backend: fixed-response
     html: "<html><body><h1>Scheduled Maintenance</h1></body></html>"
@@ -168,14 +168,14 @@ Or patch the existing resource:
 kubectl patch maintenance <maintenance-name> \
   -n <application-namespace> \
   --type merge \
-  -p '{"spec":{"enabled":false}}'
+  -p '{"spec":{"maintenanceMode":false}}'
 ```
 
 The generated maintenance Ingress and backup ConfigMap should be removed. Normal application routing resumes through the unchanged application Ingress.
 
 ## Schedule Maintenance
 
-Use `spec.schedule.start` and `spec.schedule.end` to let the controller enable and disable maintenance mode automatically. Timestamps must be RFC3339 values. Choose the timezone that matches your change window by using either `Z` for UTC or an explicit offset such as `-04:00` or `+05:30`.
+Set `spec.maintenanceMode: true` and use `spec.schedule.start` and `spec.schedule.end` to let the controller enable and disable maintenance mode automatically. Timestamps must be RFC3339 values. Choose the timezone that matches your change window by using either `Z` for UTC or an explicit offset such as `-04:00` or `+05:30`.
 
 ```yaml
 apiVersion: k8smaintenance.io/v1alpha1
@@ -185,6 +185,7 @@ metadata:
   namespace: <application-namespace>
 spec:
   targetIngress: <target-ingress-name>
+  maintenanceMode: true
   schedule:
     start: "2026-07-20T22:00:00Z"
     end: "2026-07-20T23:00:00Z"
@@ -204,7 +205,7 @@ Behavior:
 - before `start`, the resource stays `Pending` and the generated maintenance Ingress is absent;
 - from `start` until `end`, maintenance mode is enabled;
 - at or after `end`, maintenance mode is disabled and generated resources are removed;
-- `spec.enabled: false` overrides the schedule and keeps maintenance disabled.
+- `spec.maintenanceMode: false` or an omitted `spec.maintenanceMode` disables maintenance and ignores the schedule.
 - `end` must be after `start`; invalid windows are reported with `InvalidSchedule`.
 
 Example with an explicit local timezone offset:
@@ -253,7 +254,7 @@ Release images are published by GitHub Actions to GHCR when a `v*` tag is pushed
 Before cutting a release tag, update pinned release references in one shot:
 
 ```bash
-make bump-release VERSION=v0.1.3
+make bump-release VERSION=v1.0.0
 ```
 
 Review `CHANGELOG.md`, commit the generated changes, then create the immutable tag.

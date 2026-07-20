@@ -8,11 +8,9 @@ Required. Name of the target Ingress in the same namespace as the `Maintenance` 
 
 The operator uses this field to find the target Ingress. Metadata labels on the `Maintenance` resource do not select the target Ingress.
 
-`spec.enabled`
+`spec.maintenanceMode`
 
-Optional boolean. When `true`, the operator creates or reconciles the generated maintenance Ingress. When `false` or omitted, the operator removes generated maintenance resources.
-
-When `spec.schedule` is set, omitted or `true` allows the schedule to control maintenance mode. `false` is a manual override that keeps maintenance disabled.
+Optional boolean. This is the master switch for maintenance behavior. When `true`, the operator creates or reconciles maintenance resources immediately unless `spec.schedule` narrows the active window. When `false` or omitted, the operator removes generated maintenance resources and ignores `spec.schedule`.
 
 `spec.response`
 
@@ -40,7 +38,7 @@ Reserved API field from earlier designs. The controller always uses `alb.ingress
 
 `spec.schedule`
 
-Optional maintenance window. `start` and `end` are RFC3339 timestamps. The controller enables maintenance inside the window and disables it outside the window. `start` or `end` may be omitted for open-ended schedules.
+Optional maintenance window. `start` and `end` are RFC3339 timestamps. The controller enables maintenance inside the window and disables it outside the window only when `spec.maintenanceMode: true`. `start` or `end` may be omitted for open-ended schedules.
 
 End users choose the timezone by writing the timestamp with either `Z` for UTC or an explicit offset such as `-04:00` or `+05:30`.
 
@@ -51,6 +49,7 @@ Example:
 ```yaml
 spec:
   targetIngress: <target-ingress-name>
+  maintenanceMode: true
   schedule:
     start: "2026-07-20T22:00:00Z"
     end: "2026-07-20T23:00:00Z"
@@ -61,6 +60,7 @@ Equivalent example with an explicit local timezone offset:
 ```yaml
 spec:
   targetIngress: <target-ingress-name>
+  maintenanceMode: true
   schedule:
     start: "2026-07-20T18:00:00-04:00"
     end: "2026-07-20T19:00:00-04:00"
@@ -113,7 +113,7 @@ Patch an existing resource:
 kubectl patch maintenance <maintenance-name> \
   -n <application-namespace> \
   --type merge \
-  -p '{"spec":{"enabled":false}}'
+  -p '{"spec":{"maintenanceMode":false}}'
 ```
 
 ## Status

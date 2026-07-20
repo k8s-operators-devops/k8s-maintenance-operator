@@ -350,7 +350,7 @@ func TestEvaluateSchedule(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		enabled     *bool
+		mode        *bool
 		schedule    *k8smaintenancev1alpha1.MaintenanceSchedule
 		now         time.Time
 		wantEnabled bool
@@ -360,20 +360,20 @@ func TestEvaluateSchedule(t *testing.T) {
 		wantMsgPart string
 	}{
 		{name: "no schedule defaults disabled", now: now},
-		{name: "manual enabled without schedule", enabled: boolPtr(true), now: now, wantEnabled: true},
-		{name: "manual disabled overrides schedule", enabled: boolPtr(false), schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &start, End: &end}, now: now.Add(90 * time.Minute)},
-		{name: "pending before start", schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &start, End: &end}, now: now, wantPending: true, wantRequeue: time.Hour, wantMsgPart: "scheduled to start"},
-		{name: "enabled inside window without explicit enabled", schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &start, End: &end}, now: now.Add(90 * time.Minute), wantEnabled: true, wantRequeue: 30 * time.Minute},
-		{name: "enabled inside window with explicit enabled true", enabled: boolPtr(true), schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &start, End: &end}, now: now.Add(90 * time.Minute), wantEnabled: true, wantRequeue: 30 * time.Minute},
-		{name: "disabled at end", schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &start, End: &end}, now: end.Time},
-		{name: "enabled with start only after start", schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &start}, now: now.Add(90 * time.Minute), wantEnabled: true},
-		{name: "invalid when end is not after start", schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &end, End: &start}, now: now, wantInvalid: true, wantMsgPart: "must be after start"},
+		{name: "maintenance mode enabled without schedule", mode: boolPtr(true), now: now, wantEnabled: true},
+		{name: "maintenance mode disabled overrides schedule", mode: boolPtr(false), schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &start, End: &end}, now: now.Add(90 * time.Minute)},
+		{name: "schedule ignored when maintenance mode is omitted", schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &start, End: &end}, now: now.Add(90 * time.Minute)},
+		{name: "pending before start", mode: boolPtr(true), schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &start, End: &end}, now: now, wantPending: true, wantRequeue: time.Hour, wantMsgPart: "scheduled to start"},
+		{name: "enabled inside window with maintenance mode true", mode: boolPtr(true), schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &start, End: &end}, now: now.Add(90 * time.Minute), wantEnabled: true, wantRequeue: 30 * time.Minute},
+		{name: "disabled at end", mode: boolPtr(true), schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &start, End: &end}, now: end.Time},
+		{name: "enabled with start only after start", mode: boolPtr(true), schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &start}, now: now.Add(90 * time.Minute), wantEnabled: true},
+		{name: "invalid when end is not after start", mode: boolPtr(true), schedule: &k8smaintenancev1alpha1.MaintenanceSchedule{Start: &end, End: &start}, now: now, wantInvalid: true, wantMsgPart: "must be after start"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			maintenance := newMaintenance("maint", testTargetIngress)
-			maintenance.Spec.Enabled = tt.enabled
+			maintenance.Spec.MaintenanceMode = tt.mode
 			maintenance.Spec.Schedule = tt.schedule
 
 			got := evaluateSchedule(maintenance, tt.now)
@@ -477,9 +477,9 @@ var _ = Describe("Maintenance Controller", func() {
 
 		It("creates backup and generated ingress when enabled", func() {
 			target := newTargetIngress(testTargetIngress, namespace)
-			enabled := true
+			maintenanceMode := true
 			maintenance := newMaintenance("enabled-maintenance", target.Name)
-			maintenance.Spec.Enabled = &enabled
+			maintenance.Spec.MaintenanceMode = &maintenanceMode
 			Expect(k8sClient.Create(ctx, target)).To(Succeed())
 			Expect(k8sClient.Create(ctx, maintenance)).To(Succeed())
 
@@ -498,9 +498,9 @@ var _ = Describe("Maintenance Controller", func() {
 		})
 
 		It("sets failed status when target ingress is missing", func() {
-			enabled := true
+			maintenanceMode := true
 			maintenance := newMaintenance("missing-target", "does-not-exist")
-			maintenance.Spec.Enabled = &enabled
+			maintenance.Spec.MaintenanceMode = &maintenanceMode
 			Expect(k8sClient.Create(ctx, maintenance)).To(Succeed())
 
 			reconciler := &MaintenanceReconciler{Client: k8sClient, Scheme: k8sClient.Scheme()}
@@ -516,9 +516,9 @@ var _ = Describe("Maintenance Controller", func() {
 
 		It("recreates the generated ingress after manual deletion while enabled", func() {
 			target := newTargetIngress("recreate-app-ingress", namespace)
-			enabled := true
+			maintenanceMode := true
 			maintenance := newMaintenance("recreate-maintenance", target.Name)
-			maintenance.Spec.Enabled = &enabled
+			maintenance.Spec.MaintenanceMode = &maintenanceMode
 			Expect(k8sClient.Create(ctx, target)).To(Succeed())
 			Expect(k8sClient.Create(ctx, maintenance)).To(Succeed())
 
@@ -547,9 +547,9 @@ var _ = Describe("Maintenance Controller", func() {
 
 		It("removes the finalizer only after the generated ingress is gone", func() {
 			target := newTargetIngress("finalizer-app-ingress", namespace)
-			enabled := true
+			maintenanceMode := true
 			maintenance := newMaintenance("finalizer-maintenance", target.Name)
-			maintenance.Spec.Enabled = &enabled
+			maintenance.Spec.MaintenanceMode = &maintenanceMode
 			Expect(k8sClient.Create(ctx, target)).To(Succeed())
 			Expect(k8sClient.Create(ctx, maintenance)).To(Succeed())
 
@@ -596,7 +596,7 @@ var _ = Describe("Maintenance Controller", func() {
 })
 
 func newMaintenance(name, target string) *k8smaintenancev1alpha1.Maintenance {
-	enabled := false
+	maintenanceMode := false
 	return &k8smaintenancev1alpha1.Maintenance{
 		TypeMeta: metav1.TypeMeta{APIVersion: "k8smaintenance.io/v1alpha1", Kind: "Maintenance"},
 		ObjectMeta: metav1.ObjectMeta{
@@ -604,8 +604,8 @@ func newMaintenance(name, target string) *k8smaintenancev1alpha1.Maintenance {
 			Namespace: testNamespace,
 		},
 		Spec: k8smaintenancev1alpha1.MaintenanceSpec{
-			TargetIngress: target,
-			Enabled:       &enabled,
+			TargetIngress:   target,
+			MaintenanceMode: &maintenanceMode,
 		},
 	}
 }

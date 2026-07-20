@@ -3,13 +3,15 @@ kind: RoleBinding
 metadata:
   labels:
     app.kubernetes.io/name: k8s-maintenance-operator
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/version: v1.0.0
     app.kubernetes.io/managed-by: kustomize
-  name: leader-election-rolebinding
+  name: alb-maintenance-leader-election-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: leader-election-role
+  name: alb-maintenance-leader-election-role
 subjects:
 - kind: ServiceAccount
-  name: controller-manager
-  namespace: system
+  name: alb-maintenance
+  namespace: maintenance-operator

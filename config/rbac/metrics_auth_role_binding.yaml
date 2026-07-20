@@ -1,12 +1,12 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: metrics-auth-rolebinding
+  name: alb-maintenance-metrics-auth-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: metrics-auth-role
+  name: alb-maintenance-metrics-auth-role
 subjects:
 - kind: ServiceAccount
-  name: controller-manager
-  namespace: system
+  name: alb-maintenance
+  namespace: maintenance-operator
