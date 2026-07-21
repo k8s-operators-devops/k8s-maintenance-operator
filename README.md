@@ -251,7 +251,7 @@ make verify
 make bundle
 ```
 
-Release images are published by GitHub Actions to GHCR when a `v*` tag is pushed, or manually through the image publish workflow.
+Release images are published by GitHub Actions to GHCR when a `v*` tag is pushed, or manually through the image publish workflow. The publish workflow enforces the release gate before pushing any image: the release tag must point to the current protected `main` commit, and the `Tests`, `Lint`, and `Build` checks must be successful for that exact commit.
 
 Before cutting a release tag, update pinned release references in one shot:
 
@@ -259,7 +259,7 @@ Before cutting a release tag, update pinned release references in one shot:
 make bump-release VERSION=v1.0.0
 ```
 
-Review `CHANGELOG.md`, commit the generated changes, then create the immutable tag.
+Review `CHANGELOG.md`, merge the release-prep commit through the protected `main` branch, wait for required checks to pass on `main`, then create the immutable tag from that validated commit.
 
 Documentation:
 

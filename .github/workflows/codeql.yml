@@ -1,4 +1,4 @@
-name: Coverage
+name: CodeQL
 
 on:
   push:
@@ -7,14 +7,17 @@ on:
   pull_request:
     branches:
       - main
+  schedule:
+    - cron: "23 4 * * 1"
 
 permissions: {}
 
 jobs:
-  coverage:
+  analyze:
     permissions:
       contents: read
-    name: Coverage
+      security-events: write
+    name: CodeQL
     runs-on: ubuntu-latest
     steps:
       - name: Clone the code
@@ -27,13 +30,13 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Generate coverage
-        run: |
-          go test ./... -coverprofile=cover.out
-          go tool cover -func=cover.out
-
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@eec0bff2f6c15bf3f1e8a0152f94d17664a06a06 # v4
         with:
-          name: coverage
-          path: cover.out
+          languages: go
+
+      - name: Build manager
+        run: make build
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@eec0bff2f6c15bf3f1e8a0152f94d17664a06a06 # v4

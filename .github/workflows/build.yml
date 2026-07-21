@@ -1,4 +1,4 @@
-name: Coverage
+name: Build
 
 on:
   push:
@@ -11,10 +11,10 @@ on:
 permissions: {}
 
 jobs:
-  coverage:
+  build:
     permissions:
       contents: read
-    name: Coverage
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - name: Clone the code
@@ -27,13 +27,5 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Generate coverage
-        run: |
-          go test ./... -coverprofile=cover.out
-          go tool cover -func=cover.out
-
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: coverage
-          path: cover.out
+      - name: Build manager
+        run: make build
