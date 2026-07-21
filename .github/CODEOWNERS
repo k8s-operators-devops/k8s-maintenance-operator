@@ -1,0 +1,10 @@
+# Default owner for all repository changes.
+* @sumanthk911
+
+# CRD/API changes are the highest compatibility risk.
+/api/ @sumanthk911
+/config/crd/ @sumanthk911
+
+# Release and CI pipeline changes.
+/.github/workflows/ @sumanthk911
+/Makefile @sumanthk911
