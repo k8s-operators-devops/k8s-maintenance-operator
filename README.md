@@ -1,9 +1,8 @@
 # app-maintenance-operator
 
-[![Tests](https://github.com/k8s-operators-devops/app-maintenance-operator/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/k8s-operators-devops/app-maintenance-operator/actions/workflows/test.yml)
+[![CI](https://github.com/k8s-operators-devops/app-maintenance-operator/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/k8s-operators-devops/app-maintenance-operator/actions/workflows/ci.yml)
 [![Lint](https://github.com/k8s-operators-devops/app-maintenance-operator/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/k8s-operators-devops/app-maintenance-operator/actions/workflows/lint.yml)
 [![E2E Tests](https://github.com/k8s-operators-devops/app-maintenance-operator/actions/workflows/test-e2e.yml/badge.svg?branch=main)](https://github.com/k8s-operators-devops/app-maintenance-operator/actions/workflows/test-e2e.yml)
-[![Coverage](https://github.com/k8s-operators-devops/app-maintenance-operator/actions/workflows/coverage.yml/badge.svg?branch=main)](https://github.com/k8s-operators-devops/app-maintenance-operator/actions/workflows/coverage.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/k8s-operators-devops/app-maintenance-operator)](https://goreportcard.com/report/github.com/k8s-operators-devops/app-maintenance-operator)
 [![Latest Release](https://img.shields.io/github/v/release/k8s-operators-devops/app-maintenance-operator?include_prereleases)](https://github.com/k8s-operators-devops/app-maintenance-operator/releases)
 [![License](https://img.shields.io/github/license/k8s-operators-devops/app-maintenance-operator)](LICENSE)
