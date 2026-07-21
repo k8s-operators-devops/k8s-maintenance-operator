@@ -5,13 +5,42 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      go-security-updates:
+        applies-to: security-updates
+        patterns:
+          - golang.org/x/net
+          - go.opentelemetry.io/*
+      kubernetes-dependencies:
+        applies-to: version-updates
+        patterns:
+          - k8s.io/*
+      go-test-dependencies:
+        applies-to: version-updates
+        patterns:
+          - github.com/onsi/*
+      go-runtime-dependencies:
+        applies-to: version-updates
+        patterns:
+          - go.opentelemetry.io/*
+          - golang.org/x/*
+        exclude-patterns:
+          - golang.org/x/net
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
+    groups:
+      docker-dependencies:
+        patterns:
+          - "*"
