@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="google-site-verification" content="KJeOf-lzvgbuH2BYx_-PGegd7bn708F2HRZFsGFm1L8">
+  <meta name="description" content="app-maintenance-operator lets Kubernetes teams put AWS ALB-backed applications into maintenance mode without changing the original application Ingress.">
+  <title>app-maintenance-operator | ALB Application Maintenance Mode for Kubernetes</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #5d6678;
+      --line: #d8dee8;
+      --panel: #f7f9fc;
+      --accent: #136f63;
+      --accent-dark: #0d5149;
+      --warn: #9a5b13;
+      --code: #101827;
+      --white: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--white);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+
+    a {
+      color: var(--accent-dark);
+      text-decoration-thickness: 0.08em;
+      text-underline-offset: 0.18em;
+    }
+
+    .wrap {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.96);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 72px;
+      gap: 24px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand strong {
+      font-size: 1.02rem;
+    }
+
+    .brand span {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: flex-end;
+      font-size: 0.94rem;
+    }
+
+    main {
+      padding: 56px 0 48px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.75fr);
+      gap: 42px;
+      align-items: start;
+      padding-bottom: 48px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      color: var(--accent-dark);
+      font-size: 0.86rem;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 860px;
+      margin: 12px 0 18px;
+      font-size: clamp(2.35rem, 5vw, 4.8rem);
+      line-height: 1.03;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 1.18rem;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 18px;
+      border: 1px solid var(--accent-dark);
+      border-radius: 6px;
+      background: var(--accent);
+      color: var(--white);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .button.secondary {
+      background: var(--white);
+      color: var(--accent-dark);
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 20px;
+    }
+
+    .panel h2,
+    section h2 {
+      margin: 0 0 12px;
+      font-size: 1.35rem;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .panel p {
+      margin: 0 0 14px;
+      color: var(--muted);
+    }
+
+    code,
+    pre {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+
+    pre {
+      overflow-x: auto;
+      margin: 0;
+      padding: 16px;
+      border-radius: 6px;
+      background: var(--code);
+      color: #eef5ff;
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 20px;
+      margin-top: 34px;
+    }
+
+    .item {
+      border-top: 3px solid var(--accent);
+      padding-top: 14px;
+    }
+
+    .item h3 {
+      margin: 0 0 8px;
+      font-size: 1.08rem;
+      letter-spacing: 0;
+    }
+
+    .item p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    section {
+      padding: 42px 0 0;
+    }
+
+    .links {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .link-card {
+      min-height: 94px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      text-decoration: none;
+      color: var(--ink);
+      background: var(--white);
+    }
+
+    .link-card strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .link-card span {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .note {
+      margin-top: 24px;
+      border-left: 4px solid var(--warn);
+      padding: 12px 14px;
+      background: #fff8ed;
+      color: #56370f;
+    }
+
+    footer {
+      margin-top: 48px;
+      padding: 24px 0;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 860px) {
+      .nav {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 16px 0;
+      }
+
+      nav {
+        justify-content: flex-start;
+      }
+
+      .hero,
+      .grid,
+      .links {
+        grid-template-columns: 1fr;
+      }
+
+      main {
+        padding-top: 36px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav">
+      <div class="brand">
+        <strong>app-maintenance-operator</strong>
+        <span>Kubernetes application maintenance mode for AWS ALB</span>
+      </div>
+      <nav aria-label="Primary navigation">
+        <a href="https://github.com/k8s-operators-devops/app-maintenance-operator">GitHub</a>
+        <a href="https://github.com/k8s-operators-devops/app-maintenance-operator/releases">Releases</a>
+        <a href="./architecture.md">Architecture</a>
+        <a href="./configuration.md">Configuration</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <div>
+        <div class="eyebrow">AWS ALB IngressGroup maintenance overlays</div>
+        <h1>Put applications into maintenance mode without rewriting their Ingress.</h1>
+        <p class="lead">
+          app-maintenance-operator creates a temporary higher-priority ALB IngressGroup overlay that returns an HTTP 503 maintenance response while the original application Ingress stays untouched.
+        </p>
+        <div class="actions">
+          <a class="button" href="https://github.com/k8s-operators-devops/app-maintenance-operator#installation">Install</a>
+          <a class="button secondary" href="https://github.com/k8s-operators-devops/app-maintenance-operator">View Source</a>
+        </div>
+      </div>
+
+      <aside class="panel" aria-label="Pinned install command">
+        <h2>Install a pinned release</h2>
+        <p>Review the manifest, then apply a versioned release from GitHub.</p>
+        <pre><code>kubectl apply -f https://raw.githubusercontent.com/k8s-operators-devops/app-maintenance-operator/v1.0.0/deploy/install.yaml</code></pre>
+      </aside>
+    </section>
+
+    <section aria-labelledby="why-it-exists">
+      <h2 id="why-it-exists">Why Teams Use It</h2>
+      <div class="grid">
+        <div class="item">
+          <h3>No application Ingress mutation</h3>
+          <p>The operator owns a separate maintenance Ingress instead of patching business routing state during an outage window.</p>
+        </div>
+        <div class="item">
+          <h3>ALB-native behavior</h3>
+          <p>It relies on AWS Load Balancer Controller IngressGroup ordering and fixed-response actions.</p>
+        </div>
+        <div class="item">
+          <h3>Operator-controlled lifecycle</h3>
+          <p>Enable, disable, and scheduled windows are handled through a Kubernetes custom resource.</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="requirements">
+      <h2 id="requirements">Operational Requirements</h2>
+      <div class="grid">
+        <div class="item">
+          <h3>Kubernetes v1.25+</h3>
+          <p>The target cluster must support the operator CRD and controller runtime behavior.</p>
+        </div>
+        <div class="item">
+          <h3>AWS Load Balancer Controller</h3>
+          <p>The target application Ingress must be ALB-managed.</p>
+        </div>
+        <div class="item">
+          <h3>Existing IngressGroup</h3>
+          <p>The target Ingress must already define <code>alb.ingress.kubernetes.io/group.name</code>.</p>
+        </div>
+      </div>
+      <p class="note">
+        Start in a non-production namespace first. IngressGroup access can affect routing for every Ingress in the same group.
+      </p>
+    </section>
+
+    <section aria-labelledby="docs">
+      <h2 id="docs">Documentation</h2>
+      <div class="links">
+        <a class="link-card" href="./architecture.md">
+          <strong>Architecture</strong>
+          <span>Ingress overlay model and reconciliation flow.</span>
+        </a>
+        <a class="link-card" href="./configuration.md">
+          <strong>Configuration</strong>
+          <span>Maintenance spec fields and scheduling behavior.</span>
+        </a>
+        <a class="link-card" href="./testing.md">
+          <strong>Testing</strong>
+          <span>Verification, e2e coverage, and maintainer checks.</span>
+        </a>
+        <a class="link-card" href="./blog/aws-load-balancer-controller-maintenance-page.md">
+          <strong>Blog Draft</strong>
+          <span>The ALB maintenance-page problem and the operator fix.</span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      Copyright 2026 k8s-operators-devops. Licensed under Apache-2.0.
+    </div>
+  </footer>
+</body>
+</html>
