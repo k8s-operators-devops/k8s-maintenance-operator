@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"os"
+	"strings"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -29,6 +30,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
@@ -154,8 +156,21 @@ func main() {
 		metricsServerOptions.KeyName = metricsCertKey
 	}
 
+	cacheOptions := cache.Options{}
+	watchNamespaces := watchNamespacesFromEnv()
+	if len(watchNamespaces) > 0 {
+		cacheOptions.DefaultNamespaces = make(map[string]cache.Config, len(watchNamespaces))
+		for _, namespace := range watchNamespaces {
+			cacheOptions.DefaultNamespaces[namespace] = cache.Config{}
+		}
+		setupLog.Info("Restricting manager cache to configured namespaces", "namespaces", strings.Join(watchNamespaces, ","))
+	} else {
+		setupLog.Info("Watching all namespaces")
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
+		Cache:                  cacheOptions,
 		Metrics:                metricsServerOptions,
 		WebhookServer:          webhookServer,
 		HealthProbeBindAddress: probeAddr,
@@ -201,4 +216,28 @@ func main() {
 		setupLog.Error(err, "Failed to run manager")
 		os.Exit(1)
 	}
+}
+
+func watchNamespacesFromEnv() []string {
+	raw := strings.TrimSpace(os.Getenv("WATCH_NAMESPACE"))
+	if raw == "" {
+		return nil
+	}
+
+	parts := strings.Split(raw, ",")
+	namespaces := make([]string, 0, len(parts))
+	seen := make(map[string]struct{}, len(parts))
+	for _, part := range parts {
+		namespace := strings.TrimSpace(part)
+		if namespace == "" {
+			continue
+		}
+		if _, ok := seen[namespace]; ok {
+			continue
+		}
+		seen[namespace] = struct{}{}
+		namespaces = append(namespaces, namespace)
+	}
+
+	return namespaces
 }

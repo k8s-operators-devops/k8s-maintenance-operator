@@ -87,6 +87,38 @@ kubectl describe ingress <target-ingress-name> -n <application-namespace>
 
 Confirm the annotations include `alb.ingress.kubernetes.io/group.name: <alb-ingress-group-name>`.
 
+## Namespace-Scoped Operation
+
+By default, the install manifest uses cluster-scoped manager RBAC so one controller can reconcile `Maintenance` resources across application namespaces. This is convenient for platform teams, but it increases blast radius if the controller service account is compromised.
+
+For stricter least-privilege environments, the manager supports `WATCH_NAMESPACE`. When this environment variable is set, the controller-runtime cache is restricted to that namespace list. Multiple namespaces can be provided as a comma-separated list.
+
+Examples:
+
+```sh
+WATCH_NAMESPACE=payments
+WATCH_NAMESPACE=payments,checkout
+```
+
+The `config/namespaced` Kustomize profile runs the controller in its own namespace and sets `WATCH_NAMESPACE` from the pod namespace. It uses namespaced `Role` and `RoleBinding` objects for manager permissions instead of the default manager `ClusterRole` and `ClusterRoleBinding`.
+
+```sh
+kubectl apply -k config/namespaced
+```
+
+Important boundaries:
+
+- CRDs are cluster-scoped Kubernetes resources and still require cluster-level installation permissions.
+- The namespaced profile can reconcile only `Maintenance`, target Ingress, and generated backup ConfigMap resources in the watched namespace.
+- The target Ingress must still live in the same namespace as the `Maintenance` resource.
+- The namespaced profile disables the secured metrics endpoint by default to avoid adding cluster-level TokenReview and SubjectAccessReview permissions back into the runtime service account.
+
+## GitOps Considerations
+
+The operator creates temporary maintenance resources dynamically. In GitOps-managed namespaces, tools such as Argo CD or Flux may report these resources as drift. If automated pruning is enabled, the GitOps controller may delete the generated maintenance overlay before the scheduled window is complete.
+
+Production GitOps users should explicitly ignore or exclude operator-generated resources from prune decisions. At minimum, review ignore rules for generated maintenance Ingresses, backup ConfigMaps owned by a `Maintenance` resource, and resources managed by the operator service account.
+
 ## Examples
 
 Enable maintenance:
