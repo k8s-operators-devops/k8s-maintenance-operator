@@ -1,4 +1,4 @@
-name: Coverage
+name: CI
 
 on:
   push:
@@ -8,13 +8,12 @@ on:
     branches:
       - main
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
-  coverage:
-    permissions:
-      contents: read
-    name: Coverage
+  build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - name: Clone the code
@@ -27,9 +26,27 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Generate coverage
+      - name: Build manager
+        run: make build
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Run tests with coverage
         run: |
-          go test ./... -coverprofile=cover.out
+          go mod tidy
+          make test
           go tool cover -func=cover.out
 
       - name: Upload coverage artifact
