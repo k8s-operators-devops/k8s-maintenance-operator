@@ -72,6 +72,14 @@ The controller image is published to GHCR and pinned in the release manifest:
 ghcr.io/k8s-operators-devops/app-maintenance-operator:v1.0.0
 ```
 
+For least-privilege environments, the controller also supports namespace-scoped operation through `WATCH_NAMESPACE`. The `config/namespaced` Kustomize profile restricts the manager cache and manager RBAC to the operator namespace:
+
+```bash
+kubectl apply -k config/namespaced
+```
+
+CRDs remain cluster-scoped Kubernetes resources, so installing the API still requires cluster-level permission. See [Configuration](docs/configuration.md) for the security boundaries of namespace-scoped operation.
+
 ## Verify
 
 ```bash
