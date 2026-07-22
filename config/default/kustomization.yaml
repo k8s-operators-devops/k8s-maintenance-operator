@@ -12,7 +12,7 @@ namespace: alb-maintenance-operator
 images:
 - name: controller
   newName: ghcr.io/k8s-operators-devops/app-maintenance-operator
-  newTag: v1.0.0
+  newTag: v1.1.0
 
 # Labels to add to all resources and selectors.
 #labels:

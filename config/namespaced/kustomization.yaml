@@ -6,15 +6,15 @@ namespace: alb-maintenance-operator
 images:
 - name: controller
   newName: ghcr.io/k8s-operators-devops/app-maintenance-operator
-  newTag: v1.0.0
+  newTag: v1.1.0
 
 resources:
 - ../crd
-- ../rbac/service_account.yaml
-- ../rbac/leader_election_role.yaml
-- ../rbac/leader_election_role_binding.yaml
-- ../rbac/namespaced_manager_role.yaml
-- ../rbac/namespaced_manager_role_binding.yaml
+- service_account.yaml
+- leader_election_role.yaml
+- leader_election_role_binding.yaml
+- manager_role.yaml
+- manager_role_binding.yaml
 - ../manager
 
 patches:

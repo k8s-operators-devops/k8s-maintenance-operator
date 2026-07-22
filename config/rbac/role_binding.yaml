@@ -4,7 +4,7 @@ metadata:
   labels:
     app.kubernetes.io/name: app-maintenance-operator
     app.kubernetes.io/component: controller
-    app.kubernetes.io/version: v1.0.0
+    app.kubernetes.io/version: v1.1.0
     app.kubernetes.io/managed-by: kustomize
   name: alb-maintenance-manager-rolebinding
 roleRef:
