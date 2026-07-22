@@ -6,7 +6,7 @@ metadata:
 spec:
   interval: 10m
   ref:
-    tag: v1.0.0
+    tag: v1.1.0
   url: https://github.com/k8s-operators-devops/app-maintenance-operator.git
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1

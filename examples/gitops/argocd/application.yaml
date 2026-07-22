@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/k8s-operators-devops/app-maintenance-operator.git
-    targetRevision: v1.0.0
+    targetRevision: v1.1.0
     path: deploy
   destination:
     server: https://kubernetes.default.svc

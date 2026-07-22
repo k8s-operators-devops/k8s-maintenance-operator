@@ -5,7 +5,7 @@ metadata:
     control-plane: alb-maintenance
     app.kubernetes.io/name: app-maintenance-operator
     app.kubernetes.io/component: controller
-    app.kubernetes.io/version: v1.0.0
+    app.kubernetes.io/version: v1.1.0
     app.kubernetes.io/managed-by: kustomize
   name: alb-maintenance-operator
 ---
@@ -18,7 +18,7 @@ metadata:
     control-plane: alb-maintenance
     app.kubernetes.io/name: app-maintenance-operator
     app.kubernetes.io/component: controller
-    app.kubernetes.io/version: v1.0.0
+    app.kubernetes.io/version: v1.1.0
     app.kubernetes.io/managed-by: kustomize
 spec:
   selector:
@@ -34,7 +34,7 @@ spec:
         control-plane: alb-maintenance
         app.kubernetes.io/name: app-maintenance-operator
         app.kubernetes.io/component: controller
-        app.kubernetes.io/version: v1.0.0
+        app.kubernetes.io/version: v1.1.0
     spec:
       # TODO(user): Uncomment the following code to configure the nodeAffinity expression
       # according to the platforms which are supported by your solution.
@@ -73,7 +73,7 @@ spec:
         name: manager
         env:
         - name: OPERATOR_VERSION
-          value: v1.0.0
+          value: v1.1.0
         ports:
         - containerPort: 8081
           name: health

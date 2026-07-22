@@ -61,7 +61,7 @@ kubectl apply -f deploy/install.yaml
 Install a pinned release:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/k8s-operators-devops/app-maintenance-operator/v1.0.0/deploy/install.yaml
+kubectl apply -f https://raw.githubusercontent.com/k8s-operators-devops/app-maintenance-operator/v1.1.0/deploy/install.yaml
 ```
 
 The install manifest includes the namespace, CRD, service account, RBAC, leader election RBAC, metrics service, and manager deployment. No webhook resources are included because this operator does not use webhooks.
@@ -69,7 +69,7 @@ The install manifest includes the namespace, CRD, service account, RBAC, leader 
 The controller image is published to GHCR and pinned in the release manifest:
 
 ```text
-ghcr.io/k8s-operators-devops/app-maintenance-operator:v1.0.0
+ghcr.io/k8s-operators-devops/app-maintenance-operator:v1.1.0
 ```
 
 For least-privilege environments, the controller also supports namespace-scoped operation through `WATCH_NAMESPACE`. The `config/namespaced` Kustomize profile restricts the manager cache and manager RBAC to the operator namespace:
@@ -263,7 +263,7 @@ Release images are published by GitHub Actions to GHCR when a `v*` tag is pushed
 Before cutting a release tag, update pinned release references in one shot:
 
 ```bash
-make bump-release VERSION=v1.0.0
+make bump-release VERSION=v1.1.0
 ```
 
 Review `CHANGELOG.md`, merge the release-prep commit through the protected `main` branch, wait for required checks to pass on `main`, then create the immutable tag from that validated commit.

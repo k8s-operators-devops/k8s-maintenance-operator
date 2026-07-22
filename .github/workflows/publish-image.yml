@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release tag to publish. Must point to the current protected main commit, for example v1.0.0"
+        description: "Release tag to publish. Must point to the current protected main commit, for example v1.1.0"
         required: true
-        default: "v1.0.0"
+        default: "v1.1.0"
 
 permissions:
   contents: read
